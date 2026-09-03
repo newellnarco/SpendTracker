@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# SessionStart: record the session's model and role, then inject the project context the role needs.
-# Fable sessions get the review/answer/merge brief; builder sessions get the build/ask/close-out brief.
+# SessionStart: record the session's model and declared role, then inject the context that role needs.
+# Roles are declared, never inferred (PROCESS.md §1.1). A session that declares nothing starts
+# undeclared and must declare before it can act; see pre-tool.sh.
 set -u
 . "$(dirname "$0")/lib.sh"
 input="$(cat)"
@@ -12,8 +13,8 @@ source_="$(printf '%s' "$input" | jq -r '.source // .session_start_reason // "st
 f="$(st_state_ensure "$sid" "$model")"
 # A fresh start records the model; resume/compact keep the prompt count.
 case "$source_" in
-  startup|clear|fork) st_state_set "$sid" --arg m "$model" --arg r "$(st_role_for_model "$model")" '.model=$m | .role=$r' 2>/dev/null \
-     || { tmp="$f.tmp"; jq --arg m "$model" --arg r "$(st_role_for_model "$model")" '.model=$m | .role=$r' "$f" > "$tmp" && mv "$tmp" "$f"; } ;;
+  startup|clear|fork) st_state_set "$sid" --arg m "$model" --arg r "$(st_role_declared)" '.model=$m | .role=$r' 2>/dev/null \
+     || { tmp="$f.tmp"; jq --arg m "$model" --arg r "$(st_role_declared)" '.model=$m | .role=$r' "$f" > "$tmp" && mv "$tmp" "$f"; } ;;
 esac
 role="$(st_role "$sid")"
 limit="$(st_policy '.prompt_limit')"; qfile="$(st_policy '.questions_file')"; lfile="$(st_policy '.session_log_file')"; cfile="$(st_policy '.context_file')"
@@ -27,7 +28,17 @@ ctx="$(
   printf 'Full rules: docs/02-delivery/SESSION-PROTOCOL.md. Helpers: .claude/hooks/ask.sh, log.sh, answer.sh (Fable only).\n'
 
   section "Your role"
-  if [ "$role" = "fable" ]; then
+  if [ "$role" = "undeclared" ]; then
+    cat <<'TXT'
+This session has NOT declared a role, so it is restricted: it may read and build, but it may not
+merge, push to a protected branch, or write the ledger files. Per docs/PROCESS.md §1.1 a session
+with no declared role must ask before doing anything else.
+
+Ask which role this session is running as, then have the answer state it verbatim as `ROLE: fable`
+or `ROLE: builder`. The declaration is picked up from the prompt and applies for the rest of the
+session; write the same role into the header of every document this session produces.
+TXT
+  elif [ "$role" = "fable" ]; then
     cat <<'TXT'
 You are the FABLE session. You do not build. You:
 1. Read docs/00-context/CONTEXT.md, then the open questions and session log below.

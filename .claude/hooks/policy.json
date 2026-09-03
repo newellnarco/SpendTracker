@@ -1,8 +1,7 @@
 {
-  "_comment": "Session protocol policy. Edit values here rather than the scripts. See docs/02-delivery/SESSION-PROTOCOL.md.",
+  "_comment": "Session protocol policy. Edit values here rather than the scripts. Roles are declared, never inferred from the model (docs/PROCESS.md 1.1). See docs/02-delivery/SESSION-PROTOCOL.md.",
   "prompt_limit": 40,
   "warn_at": 35,
-  "fable_model_pattern": "fable|mythos",
   "protected_branches": ["main", "master"],
   "pr_author_login": "newellnarco",
   "fable_editable_paths": ["docs/", ".claude/", "README.md", "CHANGELOG.md", "schema/seed/"],
