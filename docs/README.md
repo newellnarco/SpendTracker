@@ -2,7 +2,7 @@
 
 ## Reading order
 
-1. [`00-context/CONTEXT.md`](00-context/CONTEXT.md) — the living ledger. Which slice is active, what has been decided, what is open. **Read this first in every phase, update it last in every phase.**
+1. [`00-context/CONTEXT.md`](00-context/CONTEXT.md) — the living ledger. Which slice is active, what has been decided, what is open. **Read this first in every phase; the Fable session updates it last in every phase** (ADR-0007).
 2. [`00-context/GLOSSARY.md`](00-context/GLOSSARY.md) — the vocabulary used everywhere else.
 3. [`01-architecture/ARCHITECTURE.md`](01-architecture/ARCHITECTURE.md) — system overview, C4 views, UML.
 4. [`01-architecture/DATA-MODEL.md`](01-architecture/DATA-MODEL.md) — ERD and table dictionary; DDL lives in [`../schema/001_core.sql`](../schema/001_core.sql).
@@ -16,6 +16,7 @@
 12. [`02-delivery/VERTICAL-SLICES.md`](02-delivery/VERTICAL-SLICES.md) — the iterative build order.
 13. [`02-delivery/PHASE-PLAYBOOK.md`](02-delivery/PHASE-PLAYBOOK.md) — how to run any phase without losing context.
 14. [`02-delivery/TESTING.md`](02-delivery/TESTING.md) and [`02-delivery/CI-CD.md`](02-delivery/CI-CD.md).
+15. [`02-delivery/SESSION-PROTOCOL.md`](02-delivery/SESSION-PROTOCOL.md) — hard rules, roles by model, prompt limits, the ledgers ([`QUESTIONS.md`](00-context/QUESTIONS.md), [`KNOWN-ISSUES.md`](00-context/KNOWN-ISSUES.md), [`SESSION-LOG.md`](00-context/SESSION-LOG.md)), CI tiers and blast radius.
 
 ## Architecture Decision Records
 
@@ -27,6 +28,8 @@
 | [ADR-0004](00-context/adr/ADR-0004-git-backed-rollup.md) | Append-only file export rolled up through a git repository |
 | [ADR-0005](00-context/adr/ADR-0005-adapter-plugin-contract.md) | Adapters are the only per-app code, bound by a conformance suite |
 | [ADR-0006](00-context/adr/ADR-0006-implementation-stack.md) | Python, SQLite, FastAPI, htmx and Chart.js as the reference stack |
+| [ADR-0007](00-context/adr/ADR-0007-session-roles-by-model.md) | Session roles bound to the model and enforced by hooks |
+| [ADR-0008](00-context/adr/ADR-0008-ci-tiers-blast-radius-issue-ledger.md) | CI runs tiered tests by blast radius and feeds a known-issues ledger |
 
 ## Diagram index
 

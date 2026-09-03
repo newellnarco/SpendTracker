@@ -1,0 +1,38 @@
+# Blast-radius map: which test tiers and selectors a changed path affects.
+# Consumed by the `blast-radius` CI job (examples/ci/ci.yml). First matching rule wins per path;
+# the union over all changed paths is run. Any path with no rule triggers a full run and a warning.
+version: 1
+full_run_paths:            # any change here forces the full matrix (mirrors .claude/hooks/policy.json ci_full_run_paths)
+  - "schema/**"
+  - "src/spendtracker/core/**"
+  - ".github/workflows/**"
+  - "pyproject.toml"
+  - "uv.lock"
+rules:
+  - match: "src/spendtracker/adapters/*/**"
+    tiers: [unit, integration]
+    selectors: ["tests/adapters/{1}", "tests/integration/test_ingest*.py"]
+  - match: "src/spendtracker/pricer/**"
+    tiers: [unit, integration, system]
+    selectors: ["tests/pricer", "tests/integration", "tests/system/test_overview.py"]
+  - match: "src/spendtracker/web/**"
+    tiers: [unit, system]
+    selectors: ["tests/web", "tests/system"]
+  - match: "src/spendtracker/rollup/**"
+    tiers: [unit, integration]
+    selectors: ["tests/rollup", "tests/integration/test_export*.py"]
+  - match: "src/spendtracker/cli/**"
+    tiers: [unit, system]
+    selectors: ["tests/cli", "tests/system/test_cli_smoke.py"]
+  - match: ".claude/hooks/**"
+    tiers: [integration]
+    selectors: ["tests/integration/test_session_hooks.py"]
+  - match: "tests/**"
+    tiers: [unit, integration, system]
+    selectors: ["{path}"]           # a changed test runs itself in its own tier
+  - match: "docs/**"
+    tiers: []                       # docs job only
+  - match: "examples/**"
+    tiers: []
+  - match: "README.md"
+    tiers: []

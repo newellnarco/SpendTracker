@@ -69,13 +69,19 @@ CI must be green. If the phase adds an adapter or a schema change, add the corre
 (fixture replay, migration replay).
 
 ### 8. Update context
-In `CONTEXT.md`: current state, next actions, decisions log rows, open questions (answered or new),
-research notes table, phase history row. This is the last commit of the phase and it is mandatory.
+Builder sessions: run `/close-out` (log entry, questions and issues filed, branch pushed, draft PR
+under the owner's username). Fable session: run `/fable-review`, then update `CONTEXT.md` (current
+state, next actions, decisions log rows, open questions, research notes table, phase history row)
+and commit to main. A phase is not closed until the Fable session has done this. Roles, limits and
+ledgers: SESSION-PROTOCOL.md.
 
 ### 9. Demo and hand off
-Run the slice's demo script. Paste the outcome into the PR. Merge.
+Run the slice's demo script. Paste the outcome into the PR. The Fable session merges.
 
 ## Kickoff prompt for an AI session
+
+The SessionStart hook injects the role brief and current context automatically
+(SESSION-PROTOCOL.md). Add this to the first prompt to state the goal:
 
 Copy this to start any phase with an AI coding assistant:
 

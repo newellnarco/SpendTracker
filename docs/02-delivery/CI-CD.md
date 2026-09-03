@@ -39,7 +39,22 @@ flowchart LR
 | docs | markdown link check; mermaid syntax check (`mmdc --parse` via the CLI); ensure every ADR is listed in `docs/README.md`; fail if `CONTEXT.md` was not modified on a PR labelled `phase-close` |
 | build | `uv build`; upload wheel artifact; `pipx install dist/*.whl && st doctor` |
 
-Branch protection on `main` requires lint, test-linux, adapters, schema and build.
+The `test` job above is replaced, from slice S0 onward, by the tiered layout in the next section.
+
+### Tiers, blast radius, PR author and issue output (ADR-0008, SESSION-PROTOCOL.md)
+
+| Job | Steps |
+| --- | --- |
+| pr-author | Fail unless `github.event.pull_request.user.login` equals the repository variable `PR_AUTHOR_LOGIN` (the owner's username). Hard rule. |
+| blast-radius | Diff the PR against its base; apply `examples/ci/blast-radius.yaml`; output `tiers` (subset of unit, integration, system) and `selectors`; force `full=true` when a `ci_full_run_paths` entry changed, on pushes to `main`, on label `full-ci` or `[full-ci]` in a commit message; write the selection to the job summary. Unmapped paths select the full matrix and add a warning. |
+| unit | `pytest -m unit <selectors>` (or everything when full); JUnit XML |
+| integration | `pytest -m integration <selectors>`; JUnit XML |
+| system | `pytest -m system <selectors>` (hook → spool → ingest → pricer → UI on a temp DB; Playwright smoke); JUnit XML |
+| ci-issues | On any tier failure: `examples/ci/ci-issues.py` converts JUnit reports into `ci-issues.jsonl` (check, test id, signature, message, paths), uploads the artifact, posts one PR comment listing the signatures with the `issue.sh` command to record each |
+
+Branch protection on `main` requires pr-author, lint, unit, integration, system, adapters, schema
+and build. A tier that was skipped by blast radius reports success with the summary line
+"skipped by blast radius, no affected paths", so required checks stay green without running.
 
 ### `ct-nightly.yml` (schedule)
 

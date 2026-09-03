@@ -1,0 +1,21 @@
+{
+  "_comment": "Session protocol policy. Edit values here rather than the scripts. See docs/02-delivery/SESSION-PROTOCOL.md.",
+  "prompt_limit": 40,
+  "warn_at": 35,
+  "fable_model_pattern": "fable|mythos",
+  "protected_branches": ["main", "master"],
+  "pr_author_login": "newellnarco",
+  "fable_editable_paths": ["docs/", ".claude/", "README.md", "CHANGELOG.md", "schema/seed/"],
+  "builder_readonly_paths": [
+    "docs/00-context/QUESTIONS.md",
+    "docs/00-context/SESSION-LOG.md",
+    "docs/00-context/KNOWN-ISSUES.md",
+    "docs/00-context/CONTEXT.md"
+  ],
+  "questions_file": "docs/00-context/QUESTIONS.md",
+  "session_log_file": "docs/00-context/SESSION-LOG.md",
+  "known_issues_file": "docs/00-context/KNOWN-ISSUES.md",
+  "context_file": "docs/00-context/CONTEXT.md",
+  "ci_required_checks": ["unit", "integration", "system"],
+  "ci_full_run_paths": ["schema/", "src/spendtracker/core/", ".github/workflows/", "pyproject.toml", "uv.lock"]
+}

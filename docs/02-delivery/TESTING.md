@@ -14,6 +14,31 @@
 | Install | build wheel, install with pipx on macOS, Linux, Windows, run `st doctor` | GitHub Actions matrix | release and nightly |
 | Live vendor (optional) | read-only calls to vendor APIs with a personal token, assert response shape | pytest with `--live`, skipped without tokens | nightly on a runner that has tokens |
 
+## Tiers and blast radius
+
+Every test carries exactly one tier marker: `@pytest.mark.unit`, `integration` or `system`. CI runs
+the tiers as separate named checks and selects tests by blast radius (ADR-0008):
+
+| Changed path | Tiers run | Selectors |
+| --- | --- | --- |
+| `src/spendtracker/adapters/<x>/**` | unit, integration | `tests/adapters/<x>`, `tests/integration/test_ingest*.py` |
+| `src/spendtracker/pricer/**` | unit, integration, system | `tests/pricer`, `tests/integration`, `tests/system/test_overview.py` |
+| `src/spendtracker/web/**` | unit, system | `tests/web`, `tests/system` |
+| `schema/**`, `src/spendtracker/core/**`, workflows, `pyproject.toml` | all (full run) | everything |
+| `docs/**`, `examples/**` only | none (docs job only) | — |
+| anything unmapped | all (full run) with a warning | everything |
+
+The map is `examples/ci/blast-radius.yaml`; keep it next to the code it describes. Full runs also
+happen on `main`, nightly, and on request (`full-ci` label or `[full-ci]` in a commit message).
+
+## CI issue output and the known-issues ledger
+
+A failing tier produces `ci-issues.jsonl` (one line per failure: `check`, `test_id`, `signature`,
+`message`, `paths`) as an artifact plus one PR comment. Each signature must appear in
+`docs/00-context/KNOWN-ISSUES.md` (recorded with `.claude/hooks/issue.sh`) before the PR can merge;
+the Fable review checks this. The SessionStart hook injects open issues into every session so they
+are not reintroduced, and only the session whose task is assigned that issue fixes it.
+
 ## Invariants (data tests)
 
 | Invariant | Query sketch |
