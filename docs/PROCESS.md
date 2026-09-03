@@ -11,7 +11,8 @@ and the contracts that connect them. Every session loads this file at start.
 | Writes code | No | Yes |
 | Writes tests | Acceptance criteria and acceptance tests | Unit and integration tests for its own code |
 | Runs CI | Yes, independently | Yes, locally before pushing |
-| Reviews | Yes | No |
+| Reviews | Yes: code and architecture; advises and issues action items to the builder | Yes: any session may review |
+| Marks PR ready | Yes | Yes: any session may mark a PR ready |
 | Merges | Yes (or a human, see section 9) | Never |
 | Writes docs | Design docs, phase status, decision log, review notes | Close logs, question files, assumption notes |
 | Asks questions | To the human | To fable, via a question file |
@@ -108,7 +109,8 @@ lists. Fable enforces this.
      the close log.
 6. Push the branch and open a draft PR referencing the task id.
 7. Write the close log (section 7). Push it. End.
-8. Never merge. Never edit `STATUS.md`, `DECISIONS.md`, or any packet.
+8. Never merge. Reviewing and marking a PR ready is allowed; merging is not.
+   Never edit `STATUS.md`, `DECISIONS.md`, or any packet.
 9. Never modify, skip, or quarantine an existing test to get green. Report
    the failure instead.
 
@@ -170,8 +172,12 @@ On each close log, fable:
 2. Runs the acceptance criteria from the packet.
 3. Reads the diff against the "Files you may touch" list. Anything outside
    it is a finding.
-4. Reads the diff for correctness, not only for green tests.
+4. Reads the diff for correctness and architectural fit, not only for green
+   tests.
 5. Records the outcome in the fable session log and updates `STATUS.md`.
+6. Where action is needed, writes the findings as numbered action items in
+   a rework packet and hands them to the builder (below). Fable advises and
+   directs; it does not make the code change itself.
 
 Outcomes:
 
