@@ -1,0 +1,4 @@
+{"account_id":"acct_123","last_complete_day":"2026-09-01","lines":[
+ {"id":"u1","day":"2026-09-01","model":"model-x","input_tokens":12000,"output_tokens":3000,"requests":14,"cost_usd":0.024},
+ {"id":"u2","day":"2026-09-01","model":"model-x-mini","input_tokens":5000,"output_tokens":800,"requests":9}
+]}

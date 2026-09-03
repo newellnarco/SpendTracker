@@ -1,0 +1,41 @@
+# OpenTelemetry Collector config for users who already run a collector.
+# Claude Code exports to this collector; the collector fans out to SpendTracker (local) and your backend.
+# Point Claude Code at it with OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4317 (grpc).
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 127.0.0.1:4317 }
+      http: { endpoint: 127.0.0.1:4319 }
+
+processors:
+  # Strip content attributes before anything leaves the collector. SpendTracker drops them too, belt and braces.
+  attributes/strip_content:
+    actions:
+      - { key: prompt, action: delete }
+      - { key: response, action: delete }
+      - { key: body, action: delete }
+      - { key: tool_input, action: delete }
+      - { key: tool_parameters, action: delete }
+  batch:
+    timeout: 2s
+
+exporters:
+  otlphttp/spendtracker:
+    endpoint: http://127.0.0.1:4318/otlp
+    encoding: json
+    tls: { insecure: true }
+  # Example second destination; replace with your own.
+  otlphttp/backend:
+    endpoint: https://otel.example.internal
+    headers: { Authorization: "Bearer ${env:OTEL_BACKEND_TOKEN}" }
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [attributes/strip_content, batch]
+      exporters: [otlphttp/spendtracker, otlphttp/backend]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/spendtracker, otlphttp/backend]

@@ -1,0 +1,162 @@
+# Copy to .github/workflows/ci.yml in the product repo once code exists (slice S0).
+# Tiered checks (unit / integration / system) selected by blast radius; full run on core changes,
+# main, the `full-ci` label or a `[full-ci]` commit message. See docs/02-delivery/CI-CD.md, ADR-0008.
+name: ci
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  pr-author:
+    # Hard rule: every PR is opened under the owner's GitHub username (repo variable PR_AUTHOR_LOGIN).
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{ github.event.pull_request.user.login }}" != "${{ vars.PR_AUTHOR_LOGIN }}" ]; then
+            echo "::error::PR author '${{ github.event.pull_request.user.login }}' is not '${{ vars.PR_AUTHOR_LOGIN }}' (SESSION-PROTOCOL.md hard rule 1)"; exit 1; fi
+  blast-radius:
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.sel.outputs.full }}
+      tiers: ${{ steps.sel.outputs.tiers }}
+      selectors: ${{ steps.sel.outputs.selectors }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: sel
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          MSG: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          pip install -q pyyaml
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import os, subprocess, fnmatch, yaml, json
+          m = yaml.safe_load(open("examples/ci/blast-radius.yaml"))
+          changed = subprocess.run(["git","diff","--name-only",os.environ["BASE"],os.environ["HEAD"]],capture_output=True,text=True).stdout.split()
+          full = os.environ["IS_MAIN"]=="true" or "full-ci" in os.environ["LABELS"] or "[full-ci]" in os.environ["MSG"]
+          tiers, selectors, unmapped = set(), set(), []
+          for p in changed:
+              if any(fnmatch.fnmatch(p, g) for g in m["full_run_paths"]): full = True
+              for r in m["rules"]:
+                  if fnmatch.fnmatch(p, r["match"]):
+                      tiers |= set(r.get("tiers", []))
+                      for s in r.get("selectors", []): selectors.add(s.replace("{path}", p).replace("{1}", p.split("/")[3] if p.count("/")>=3 else ""))
+                      break
+              else: unmapped.append(p)
+          if unmapped: full = True
+          summary = f"### Blast radius\n- full run: {full}\n- tiers: {sorted(tiers) if not full else 'all'}\n- selectors: {sorted(selectors) if not full else 'everything'}\n- changed: {len(changed)} files\n" + (f"- WARNING unmapped paths (forced full run): {unmapped}\n" if unmapped else "")
+          open(os.environ["GITHUB_STEP_SUMMARY"],"a").write(summary)
+          print(f"full={'true' if full else 'false'}")
+          print(f"tiers={json.dumps(sorted(tiers))}")
+          print(f"selectors={' '.join(sorted(selectors))}")
+          PY
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy src
+  unit:
+    needs: blast-radius
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - if: ${{ needs.blast-radius.outputs.full == 'true' || contains(needs.blast-radius.outputs.tiers, 'unit') }}
+        run: |
+          uv sync --all-extras
+          mkdir -p reports
+          if [ "${{ needs.blast-radius.outputs.full }}" = "true" ]; then uv run pytest -m unit --junitxml=reports/unit.xml
+          else uv run pytest -m unit ${{ needs.blast-radius.outputs.selectors }} --junitxml=reports/unit.xml; fi
+      - if: ${{ needs.blast-radius.outputs.full != 'true' && !contains(needs.blast-radius.outputs.tiers, 'unit') }}
+        run: echo "skipped by blast radius, no affected paths" >> "$GITHUB_STEP_SUMMARY"
+      - if: ${{ failure() }}
+        uses: ./.github/actions/ci-issues
+        with: { check: unit, junit: reports/unit.xml }
+  integration:
+    needs: blast-radius
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - if: ${{ needs.blast-radius.outputs.full == 'true' || contains(needs.blast-radius.outputs.tiers, 'integration') }}
+        run: |
+          uv sync --all-extras
+          mkdir -p reports
+          if [ "${{ needs.blast-radius.outputs.full }}" = "true" ]; then uv run pytest -m integration --junitxml=reports/integration.xml
+          else uv run pytest -m integration ${{ needs.blast-radius.outputs.selectors }} --junitxml=reports/integration.xml; fi
+      - if: ${{ needs.blast-radius.outputs.full != 'true' && !contains(needs.blast-radius.outputs.tiers, 'integration') }}
+        run: echo "skipped by blast radius, no affected paths" >> "$GITHUB_STEP_SUMMARY"
+      - if: ${{ failure() }}
+        uses: ./.github/actions/ci-issues
+        with: { check: integration, junit: reports/integration.xml }
+  system:
+    needs: blast-radius
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - if: ${{ needs.blast-radius.outputs.full == 'true' || contains(needs.blast-radius.outputs.tiers, 'system') }}
+        run: |
+          uv sync --all-extras
+          uv run playwright install --with-deps chromium
+          mkdir -p reports
+          if [ "${{ needs.blast-radius.outputs.full }}" = "true" ]; then uv run pytest -m system --junitxml=reports/system.xml
+          else uv run pytest -m system ${{ needs.blast-radius.outputs.selectors }} --junitxml=reports/system.xml; fi
+      - if: ${{ needs.blast-radius.outputs.full != 'true' && !contains(needs.blast-radius.outputs.tiers, 'system') }}
+        run: echo "skipped by blast radius, no affected paths" >> "$GITHUB_STEP_SUMMARY"
+      - if: ${{ failure() }}
+        uses: ./.github/actions/ci-issues
+        with: { check: system, junit: reports/system.xml }
+  adapters:
+    needs: blast-radius
+    if: ${{ needs.blast-radius.outputs.full == 'true' || contains(needs.blast-radius.outputs.selectors, 'tests/adapters') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run st adapter test --all
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          for f in schema/*.sql; do sqlite3 /tmp/fresh.db < "$f"; done
+          sqlite3 /tmp/fresh.db .schema > /tmp/head.sql
+          diff <(sort tests/schema_snapshots/head.sql) <(sort /tmp/head.sql)
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with: { args: "--offline docs/**/*.md README.md" }
+      - run: |
+          for adr in docs/00-context/adr/ADR-*.md; do
+            id=$(basename "$adr" | cut -d- -f1-2)
+            grep -q "$id" docs/README.md || { echo "$id missing from docs/README.md"; exit 1; }
+          done
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, unit, integration, system]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - run: pipx install dist/*.whl && st doctor
+      - uses: actions/upload-artifact@v4
+        with: { name: wheel, path: dist/*.whl }
+# Composite action referenced above (.github/actions/ci-issues/action.yml):
+#   inputs: check, junit
+#   steps: python3 examples/ci/ci-issues.py --check $check --junit $junit --out ci-issues-$check.jsonl --comment comment.md
+#          upload-artifact ci-issues-$check ; on pull_request: post comment.md as a PR comment (marocchino/sticky-pull-request-comment or gh api)

@@ -1,0 +1,7 @@
+{"app_id":"example_vendor","occurred_at":"2026-09-01T00:00:00Z","measure_id":"token.input","quantity":12000,"model":"model-x","source":"api","source_ref":"u1","account_key":"example_vendor:acct_123"}
+{"app_id":"example_vendor","occurred_at":"2026-09-01T00:00:00Z","measure_id":"token.output","quantity":3000,"model":"model-x","source":"api","source_ref":"u1","account_key":"example_vendor:acct_123"}
+{"app_id":"example_vendor","occurred_at":"2026-09-01T00:00:00Z","measure_id":"request.count","quantity":14,"model":"model-x","source":"api","source_ref":"u1","account_key":"example_vendor:acct_123"}
+{"app_id":"example_vendor","occurred_at":"2026-09-01T00:00:00Z","measure_id":"cost.reported.usd","quantity":0.024,"model":"model-x","source":"api","source_ref":"u1","account_key":"example_vendor:acct_123"}
+{"app_id":"example_vendor","occurred_at":"2026-09-01T00:00:00Z","measure_id":"token.input","quantity":5000,"model":"model-x-mini","source":"api","source_ref":"u2","account_key":"example_vendor:acct_123"}
+{"app_id":"example_vendor","occurred_at":"2026-09-01T00:00:00Z","measure_id":"token.output","quantity":800,"model":"model-x-mini","source":"api","source_ref":"u2","account_key":"example_vendor:acct_123"}
+{"app_id":"example_vendor","occurred_at":"2026-09-01T00:00:00Z","measure_id":"request.count","quantity":9,"model":"model-x-mini","source":"api","source_ref":"u2","account_key":"example_vendor:acct_123"}

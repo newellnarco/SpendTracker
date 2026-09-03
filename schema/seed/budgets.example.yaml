@@ -1,0 +1,4 @@
+budgets:
+  - {budget_id: global_month, label: "All tools", scope_type: global, period: month, amount: 400.00, currency: USD, starts_at: 2026-01-01, thresholds: [0.5, 0.8, 1.0]}
+  - {budget_id: claude_month, label: "Claude (Code + API)", scope_type: category, scope_id: ai_assistant, period: month, amount: 250.00, currency: USD, starts_at: 2026-01-01}
+  - {budget_id: api_project, label: "acme/api", scope_type: project, scope_id: "github.com/acme/api", period: month, amount: 120.00, currency: USD, starts_at: 2026-01-01}

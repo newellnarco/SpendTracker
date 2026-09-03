@@ -1,0 +1,42 @@
+# Copy to .github/workflows/rollup.yml in the team rollup repository.
+name: rollup
+on:
+  pull_request:
+    paths: ["data/**", "team/**", "schema/**"]
+  push:
+    branches: [main]
+    paths: ["data/**", "team/**", "schema/**"]
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: pipx install "spendtracker==0.*"
+      - run: st rollup validate --repo . --base origin/main
+      - uses: gitleaks/gitleaks-action@v2
+  build:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx install "spendtracker==0.*"
+      - run: st rollup build --repo . --out rollup.db
+      - run: st site build --db rollup.db --out site/
+      - uses: actions/upload-artifact@v4
+        with: { name: rollup-db, path: rollup.db }
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

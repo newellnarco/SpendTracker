@@ -1,0 +1,35 @@
+# Generic measures (app_id null) plus the initial app-specific ones. See DATA-MODEL.md §3.
+measures:
+  - {measure_id: token.input,          app_id: null,       unit_kind: count,      display_unit: tokens}
+  - {measure_id: token.output,         app_id: null,       unit_kind: count,      display_unit: tokens}
+  - {measure_id: token.cache_read,     app_id: null,       unit_kind: count,      display_unit: tokens}
+  - {measure_id: token.cache_write,    app_id: null,       unit_kind: count,      display_unit: tokens}
+  - {measure_id: request.count,        app_id: null,       unit_kind: count,      display_unit: requests}
+  - {measure_id: request.error,        app_id: null,       unit_kind: count,      display_unit: errors}
+  - {measure_id: session.count,        app_id: null,       unit_kind: count,      display_unit: sessions}
+  - {measure_id: turn.count,           app_id: null,       unit_kind: count,      display_unit: turns}
+  - {measure_id: session.end,          app_id: null,       unit_kind: count,      display_unit: sessions}
+  - {measure_id: active_time.s,        app_id: null,       unit_kind: duration_s, display_unit: s}
+  - {measure_id: tool_call.count,      app_id: null,       unit_kind: count,      display_unit: calls}
+  - {measure_id: seat.count,           app_id: null,       unit_kind: count,      display_unit: seats}
+  - {measure_id: cost.reported.usd,    app_id: null,       unit_kind: currency,   display_unit: USD, is_cost: true}
+  - {measure_id: loc.added,            app_id: claude_code, unit_kind: count,     display_unit: lines}
+  - {measure_id: loc.removed,          app_id: claude_code, unit_kind: count,     display_unit: lines}
+  - {measure_id: commit.count,         app_id: claude_code, unit_kind: count,     display_unit: commits}
+  - {measure_id: pr.count,             app_id: claude_code, unit_kind: count,     display_unit: PRs}
+  - {measure_id: mcp.tool_call,        app_id: mcp,        unit_kind: count,      display_unit: calls}
+  - {measure_id: mcp.duration_ms,      app_id: mcp,        unit_kind: duration_s, display_unit: s}
+  - {measure_id: mcp.error,            app_id: mcp,        unit_kind: count,      display_unit: errors}
+  - {measure_id: action.minute.linux,  app_id: github,     unit_kind: duration_s, display_unit: min}
+  - {measure_id: action.minute.windows,app_id: github,     unit_kind: duration_s, display_unit: min}
+  - {measure_id: action.minute.macos,  app_id: github,     unit_kind: duration_s, display_unit: min}
+  - {measure_id: storage.gb_month,     app_id: github,     unit_kind: count,      display_unit: GB-month}
+  - {measure_id: codespaces.core_hour, app_id: github,     unit_kind: count,      display_unit: core-h}
+  - {measure_id: copilot.ai_credit,    app_id: copilot,    unit_kind: count,      display_unit: credits}
+  - {measure_id: copilot.premium_request, app_id: copilot, unit_kind: count,      display_unit: requests}
+  - {measure_id: copilot.suggestion.shown,    app_id: copilot, unit_kind: count, display_unit: suggestions}
+  - {measure_id: copilot.suggestion.accepted, app_id: copilot, unit_kind: count, display_unit: suggestions}
+  - {measure_id: copilot.chat.turn,    app_id: copilot,    unit_kind: count,      display_unit: turns}
+  - {measure_id: review.count,         app_id: coderabbit, unit_kind: count,      display_unit: reviews}
+  - {measure_id: review.comment,       app_id: coderabbit, unit_kind: count,      display_unit: comments}
+  - {measure_id: pr.reviewed,          app_id: coderabbit, unit_kind: count,      display_unit: PRs}

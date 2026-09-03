@@ -1,0 +1,3 @@
+nodes:
+  - {handle: alice-mbp, user: alice, timezone: America/Chicago, cost_center: platform, min_redaction: standard}
+  - {handle: bob-linux, user: bob,   timezone: Europe/Berlin,   cost_center: platform, min_redaction: standard}
