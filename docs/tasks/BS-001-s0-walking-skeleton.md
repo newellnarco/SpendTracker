@@ -5,16 +5,19 @@
 | ROLE / AUTHOR | fable · session `ac98103e-96d1-5342-b6b7-982cd19f151f` (claude-fable-5-1) · 2026-09-03 |
 | SPEC-COMMIT | `main` at `7fcb45b` (docs, `schema/`, `examples/` as of that commit) |
 | PHASE / SLICE | Phase 1 (first build phase) · S0 (`docs/02-delivery/VERTICAL-SLICES.md`) |
-| BRANCH | `work/s0-skeleton` |
+| BRANCH | `work/s0-skeleton` for a local session; a cloud session pushes to the `claude/<slug>` branch the harness assigned it (PROCESS.md § 8) |
 | CAPABILITIES | C-01, C-02 (stdin only), C-04, C-05 (list only), C-10 (Overview, one total), C-29 (minimal), C-30 (wheel) |
 | STATUS | open (queue entry BS-001 in `docs/00-context/CONTEXT.md`) |
 
 ## 0. How to use this packet
 
 - You are a **builder session**. Read `docs/PROCESS.md`, then this file, then the documents in
-  section 2 in the order given. Nothing else is required to build this packet.
-- Work on branch `work/s0-skeleton` from `main`. Push early and open a **draft PR under the
-  owner's GitHub username** (hard rule, `docs/02-delivery/SESSION-PROTOCOL.md`). Never merge.
+  section 2 in the order given. Nothing else is required to build this packet, and nothing else
+  is in your context by design (ADR-0010): other packets are hook-denied, and anything this packet
+  lacks is asked for with `ask.sh`.
+- Work on the branch this session was started on (locally: `work/s0-skeleton` from `main`; in
+  the cloud: the `claude/<slug>` branch you were given). Push early and open a **draft PR under
+  the owner's GitHub username** (hard rule, `docs/02-delivery/SESSION-PROTOCOL.md`). Never merge.
 - Build in the order of section 6. Each step ends with a green local check, so a session that
   reaches the 40-prompt limit can `/close-out` and the next builder resumes the entry marked
   `in progress`.
@@ -43,7 +46,7 @@ st report          # prints $0.025
 | # | Document | Why |
 | --- | --- | --- |
 | 1 | `docs/PROCESS.md` | roles, packet contract, close log |
-| 2 | `docs/00-context/CONTEXT.md` (Current state, Next actions, Builder session queue) | live state; confirm BS-001 is still `open` or yours `in progress` |
+| 2 | the `CONTEXT.md` excerpt the session start injected (Current state, your queue entry BS-001) | live state; confirm BS-001 is still `open` or yours `in progress`. Do not read the rest of `CONTEXT.md` |
 | 3 | `docs/00-context/GLOSSARY.md` | vocabulary used in every identifier |
 | 4 | `docs/02-delivery/VERTICAL-SLICES.md` § S0 | the slice this packet implements |
 | 5 | `docs/01-architecture/ARCHITECTURE.md` § 3 (process model), § 7 (layering rules), § 8 (disk layout), § 9 | structure you must keep |

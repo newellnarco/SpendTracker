@@ -12,6 +12,7 @@ case "$kind" in start|progress|close) ;; *) echo "kind must be start|progress|cl
 [ -z "$text" ] && { echo "text required" >&2; exit 1; }
 st_state_ensure "$sid" >/dev/null
 model="$(st_state_get "$sid" model)"; role="$(st_role "$sid")"; n="$(st_state_get "$sid" prompts)"
+[ "$(st_role_source "$sid")" = "prompt" ] && role="$role (declared)"
 lfile="$ST_ROOT/$(st_policy '.session_log_file')"
 mkdir -p "$(dirname "$lfile")"
 [ -f "$lfile" ] || printf '# Session log\n\nAppend-only. Entries are written by `.claude/hooks/log.sh`; newest at the bottom.\n' > "$lfile"

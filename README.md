@@ -12,8 +12,10 @@ aggregates all users into a team view.
 
 ## Status
 
-This repository currently holds the **architecture and delivery design**. No application code has
-been written yet. Start at [`docs/README.md`](docs/README.md).
+This repository currently holds the **architecture and delivery design** and the **session
+protocol** under which it is built. No application code has been written yet; the first packet
+(S0 walking skeleton) is written and waiting for a builder session. Start at
+[`docs/README.md`](docs/README.md).
 
 ## Repository map
 
@@ -24,6 +26,10 @@ been written yet. Start at [`docs/README.md`](docs/README.md).
 | `docs/02-delivery/` | Separable capabilities, vertical slices, the per-phase playbook, testing, and CI/CD/CT. |
 | `schema/` | SQLite DDL and seed data (rate cards, subscriptions, measures). |
 | `examples/` | Reference hook scripts, OpenTelemetry collector config, rollup export samples, CI workflow templates, an adapter template. |
+| `docs/PROCESS.md`, `docs/tasks/` | How work is divided between the Fable session (architect, reviewer, gate) and builder sessions (one task packet each), and the packets themselves. |
+| `docs/exports/` | The Word export of the design, process and controls, regenerated from the documents. |
+| `.claude/` | Session-protocol hooks, policy, role checklists (`/close-out`, `/fable-review`) and the hook self-test. |
+| `.github/rulesets/` | Importable branch protection for `main`, the backstop the hooks cannot provide. |
 
 ## The one-paragraph design
 

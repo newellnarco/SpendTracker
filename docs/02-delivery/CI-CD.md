@@ -8,7 +8,7 @@ Templates live in `examples/ci/`; copy them into `.github/workflows/` when the f
 ```mermaid
 flowchart LR
     subgraph product[Product repo]
-        pr[PR] --> ci[ci.yml<br/>ruff · mypy · pytest · adapter conformance · Playwright smoke]
+        pr[PR] --> ci[ci.yml<br/>pr-author · blast-radius · lint · unit · integration · system · adapters · schema · docs · build]
         ci --> merge[merge to main]
         merge --> nightly[ct-nightly.yml<br/>replay · migrations · perf · install matrix · live vendor]
         merge --> tag[tag vX.Y.Z]
@@ -29,32 +29,31 @@ flowchart LR
 
 ### `ci.yml` (pull requests and main)
 
-| Job | Steps |
-| --- | --- |
-| lint | `uv sync`, `ruff check`, `ruff format --check`, `mypy` |
-| test-linux / test-macos | `pytest -m "not ui and not live"` with coverage; upload `coverage.xml` |
-| adapters | `st adapter test --all` |
-| ui | Playwright smoke on Linux with the pre-installed Chromium |
-| schema | apply `schema/*.sql` to an empty DB and to each snapshot; diff `sqlite_master` against `tests/schema_snapshots/head.sql` |
-| docs | markdown link check; mermaid syntax check (`mmdc --parse` via the CLI); ensure every ADR is listed in `docs/README.md`; fail if `CONTEXT.md` was not modified on a PR labelled `phase-close` |
-| build | `uv build`; upload wheel artifact; `pipx install dist/*.whl && st doctor` |
-
-The `test` job above is replaced, from slice S0 onward, by the tiered layout in the next section.
-
-### Tiers, blast radius, PR author and issue output (ADR-0008, SESSION-PROTOCOL.md)
+The template is `examples/ci/ci.yml`; slice S0 installs it as `.github/workflows/ci.yml` together
+with the `.github/actions/ci-issues` composite action it references (ADR-0008, SESSION-PROTOCOL.md).
+Jobs, in the order they run:
 
 | Job | Steps |
 | --- | --- |
-| pr-author | Fail unless `github.event.pull_request.user.login` equals the repository variable `PR_AUTHOR_LOGIN` (the owner's username). Hard rule. |
+| pr-author | Fail unless `github.event.pull_request.user.login` equals the repository variable `PR_AUTHOR_LOGIN` (the owner's username). Hard rule. Skipped on pushes to `main`. |
 | blast-radius | Diff the PR against its base; apply `examples/ci/blast-radius.yaml`; output `tiers` (subset of unit, integration, system) and `selectors`; force `full=true` when a `ci_full_run_paths` entry changed, on pushes to `main`, on label `full-ci` or `[full-ci]` in a commit message; write the selection to the job summary. Unmapped paths select the full matrix and add a warning. |
+| lint | `uv sync`, `ruff check`, `ruff format --check`, `mypy src` |
 | unit | `pytest -m unit <selectors>` (or everything when full); JUnit XML |
 | integration | `pytest -m integration <selectors>`; JUnit XML |
-| system | `pytest -m system <selectors>` (hook → spool → ingest → pricer → UI on a temp DB; Playwright smoke); JUnit XML |
-| ci-issues | On any tier failure: `examples/ci/ci-issues.py` converts JUnit reports into `ci-issues.jsonl` (check, test id, signature, message, paths), uploads the artifact, posts one PR comment listing the signatures with the `issue.sh` command to record each |
+| system | `pytest -m system <selectors>` (hook → spool → ingest → pricer → UI on a temp DB; Playwright smoke with Chromium); JUnit XML |
+| adapters | `st adapter test --all`; runs on a full run or when an adapter test path is selected |
+| schema | apply `schema/*.sql` to an empty DB; diff the sorted `.schema` output against `tests/schema_snapshots/head.sql` |
+| docs | offline markdown link check (lychee) over `docs/**/*.md` and `README.md`; ensure every ADR is listed in `docs/README.md`. Planned, not in the template yet: mermaid parse check; fail if `CONTEXT.md` was not modified on a PR labelled `phase-close` |
+| build | needs lint, unit, integration, system: `uv build`; upload the wheel; `pipx install dist/*.whl && st doctor` |
+| ci-issues (composite action) | On any tier failure: `examples/ci/ci-issues.py` converts JUnit reports into `ci-issues.jsonl` (check, test id, signature, message, paths), uploads the artifact, posts one PR comment listing the signatures with the `issue.sh` command to record each |
+
+A tier that was skipped by blast radius reports success with the summary line "skipped by blast
+radius, no affected paths", so required checks stay green without running. Tests run on Linux;
+the nightly install matrix covers macOS and Windows.
 
 Branch protection on `main` requires pr-author, lint, unit, integration, system, adapters, schema
-and build. A tier that was skipped by blast radius reports success with the summary line
-"skipped by blast radius, no affected paths", so required checks stay green without running.
+and build (`.github/rulesets/main-protection-with-checks.json`); `blast-radius` and `docs` run but
+are not required, so a docs-only change cannot be blocked by a flaky link check.
 
 ### `ct-nightly.yml` (schedule)
 

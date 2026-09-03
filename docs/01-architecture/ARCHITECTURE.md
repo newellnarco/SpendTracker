@@ -10,7 +10,7 @@
 | Local web UI for trends, by app, by type, by currency | FastAPI + htmx pages over SQL views (WEB-UI.md). |
 | Roll up many local users to a repository | Append-only JSONL export, git-based rollup, CI-built aggregate (ADR-0004, AGGREGATION.md). |
 | Add layers incrementally | Adapter contract and conformance suite (ADR-0005, ADAPTER-SPEC.md). |
-| Iterate without losing context | Context ledger, ADRs, phase playbook (PHASE-PLAYBOOK.md). |
+| Iterate without losing context | Context ledger, ADRs, phase playbook (PHASE-PLAYBOOK.md); two session roles that gate each other and a packet per builder session (PROCESS.md, SESSION-PROTOCOL.md). |
 
 Non-goals for the first releases: real-time streaming dashboards, enforcing spend limits inside the
 tools, and scraping vendor invoices from web portals.

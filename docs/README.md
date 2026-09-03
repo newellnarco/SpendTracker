@@ -16,8 +16,9 @@
 12. [`02-delivery/VERTICAL-SLICES.md`](02-delivery/VERTICAL-SLICES.md) — the iterative build order.
 13. [`02-delivery/PHASE-PLAYBOOK.md`](02-delivery/PHASE-PLAYBOOK.md) — how to run any phase without losing context.
 14. [`02-delivery/TESTING.md`](02-delivery/TESTING.md) and [`02-delivery/CI-CD.md`](02-delivery/CI-CD.md).
-15. [`02-delivery/SESSION-PROTOCOL.md`](02-delivery/SESSION-PROTOCOL.md) — hard rules, roles by model, prompt limits, the ledgers ([`QUESTIONS.md`](00-context/QUESTIONS.md), [`KNOWN-ISSUES.md`](00-context/KNOWN-ISSUES.md), [`SESSION-LOG.md`](00-context/SESSION-LOG.md)), CI tiers and blast radius.
-16. [`PROCESS.md`](PROCESS.md) — division of labor between Fable and builder sessions and the task packet contract. Packets, one per builder session queue entry, live in [`tasks/`](tasks/).
+15. [`02-delivery/SESSION-PROTOCOL.md`](02-delivery/SESSION-PROTOCOL.md) — hard rules, role determination, the session lifecycle and context boundary, prompt limits, the ledgers ([`QUESTIONS.md`](00-context/QUESTIONS.md), [`KNOWN-ISSUES.md`](00-context/KNOWN-ISSUES.md), [`SESSION-LOG.md`](00-context/SESSION-LOG.md)), CI tiers and blast radius.
+16. [`PROCESS.md`](PROCESS.md) — division of labor between Fable and builder sessions and the task packet contract. Packets, one per builder session queue entry, live in `tasks/` (first: [`BS-001`](tasks/BS-001-s0-walking-skeleton.md)).
+17. [`exports/`](exports/README.md) — the Word export of the design, process and controls, and the script that regenerates it from these documents.
 
 ## Architecture Decision Records
 
@@ -31,10 +32,14 @@
 | [ADR-0006](00-context/adr/ADR-0006-implementation-stack.md) | Python, SQLite, FastAPI, htmx and Chart.js as the reference stack |
 | [ADR-0007](00-context/adr/ADR-0007-session-roles-by-model.md) | Session roles bound to the model and enforced by hooks |
 | [ADR-0008](00-context/adr/ADR-0008-ci-tiers-blast-radius-issue-ledger.md) | CI runs tiered tests by blast radius and feeds a known-issues ledger |
+| [ADR-0009](00-context/adr/ADR-0009-session-role-determination.md) | Session role from the observed model, else by declaration; undeclared sessions fail closed |
+| [ADR-0010](00-context/adr/ADR-0010-builder-context-boundary.md) | Builder sessions work from a task packet; only the Fable session holds the full context |
 
 ## Diagram index
 
-All diagrams are Mermaid blocks rendered by GitHub. Search for the diagram id to find it.
+All diagrams are Mermaid blocks rendered by GitHub. Search for the diagram id to find it; the id
+appears in parentheses in the heading above each block, which is how `exports/build-export.js`
+finds them.
 
 | Id | Kind | Where |
 | --- | --- | --- |
@@ -52,6 +57,11 @@ All diagrams are Mermaid blocks rendered by GitHub. Search for the diagram id to
 | `D-SLICES` | Gantt of vertical slices | VERTICAL-SLICES.md |
 | `D-CAPDEP` | Capability dependency graph | CAPABILITIES.md |
 | `D-PIPE` | CI/CD/CT pipeline | CI-CD.md |
+| `D-PHASE` | Phase steps | PHASE-PLAYBOOK.md |
+| `D-LIFECYCLE` | Builder and Fable session lifecycle, start to end | SESSION-PROTOCOL.md |
+| `D-SESSION` | Sequence: owner, Fable, builder, CI, ledgers | SESSION-PROTOCOL.md |
+| `D-CONTEXT` | Context boundary between the roles | SESSION-PROTOCOL.md |
+| `D-GATES` | Gates between a builder branch and `main` | SESSION-PROTOCOL.md |
 
 ## Conventions
 
