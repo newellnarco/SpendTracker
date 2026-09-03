@@ -1,0 +1,71 @@
+# Copy to .github/workflows/ci.yml in the product repo once code exists (slice S0).
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy src
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run pytest -m "not ui and not live" --cov=spendtracker --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        with: { name: coverage-${{ matrix.os }}, path: coverage.xml }
+  adapters:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run st adapter test --all
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --all-extras
+      - run: uv run playwright install --with-deps chromium
+      - run: uv run pytest -m ui
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          for f in schema/*.sql; do sqlite3 /tmp/fresh.db < "$f"; done
+          sqlite3 /tmp/fresh.db .schema > /tmp/head.sql
+          diff <(sort tests/schema_snapshots/head.sql) <(sort /tmp/head.sql)
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with: { args: "--offline docs/**/*.md README.md" }
+      - run: |
+          for adr in docs/00-context/adr/ADR-*.md; do
+            id=$(basename "$adr" | cut -d- -f1-2)
+            grep -q "$id" docs/README.md || { echo "$id missing from docs/README.md"; exit 1; }
+          done
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - run: pipx install dist/*.whl && st doctor
+      - uses: actions/upload-artifact@v4
+        with: { name: wheel, path: dist/*.whl }

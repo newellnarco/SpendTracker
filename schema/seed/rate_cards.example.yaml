@@ -1,0 +1,32 @@
+# Example rate cards. Prices are entered in the vendor's natural unit and converted by `st rates apply`:
+#   per_million: price per 1,000,000 units  -> stored as nanos per unit (price * 1000)
+#   per_unit:    price per single unit       -> stored as nanos per unit (price * 1e9)
+# Verify every price against the vendor page before applying; dates below are the day they were checked.
+# Anthropic first-party API prices from the Claude platform pricing page as cached 2026-06-24.
+rate_cards:
+  - {rate_id: anthropic.opus-5.input,       app_id: claude_api, measure_id: token.input,       sku_pattern: "claude-opus-5*",   per_million: 5.00,  currency: USD, effective_from: 2026-06-24, source_url: "https://platform.claude.com/docs/en/about-claude/pricing"}
+  - {rate_id: anthropic.opus-5.output,      app_id: claude_api, measure_id: token.output,      sku_pattern: "claude-opus-5*",   per_million: 25.00, currency: USD, effective_from: 2026-06-24}
+  - {rate_id: anthropic.opus-5.cache_read,  app_id: claude_api, measure_id: token.cache_read,  sku_pattern: "claude-opus-5*",   per_million: 0.50,  currency: USD, effective_from: 2026-06-24, notes: "0.1x input; confirm on pricing page"}
+  - {rate_id: anthropic.opus-5.cache_write, app_id: claude_api, measure_id: token.cache_write, sku_pattern: "claude-opus-5*",   per_million: 6.25,  currency: USD, effective_from: 2026-06-24, notes: "1.25x input for 5m; 1h writes use sku 'ephemeral_1h' at 2x"}
+  - {rate_id: anthropic.sonnet-5.input,     app_id: claude_api, measure_id: token.input,       sku_pattern: "claude-sonnet-5*", per_million: 2.00,  currency: USD, effective_from: 2026-06-24}
+  - {rate_id: anthropic.sonnet-5.output,    app_id: claude_api, measure_id: token.output,      sku_pattern: "claude-sonnet-5*", per_million: 10.00, currency: USD, effective_from: 2026-06-24}
+  - {rate_id: anthropic.haiku-4-5.input,    app_id: claude_api, measure_id: token.input,       sku_pattern: "claude-haiku-4-5*", per_million: 1.00, currency: USD, effective_from: 2026-06-24}
+  - {rate_id: anthropic.haiku-4-5.output,   app_id: claude_api, measure_id: token.output,      sku_pattern: "claude-haiku-4-5*", per_million: 5.00, currency: USD, effective_from: 2026-06-24}
+  - {rate_id: anthropic.fable-5-1.input,    app_id: claude_api, measure_id: token.input,       sku_pattern: "claude-fable-5-1*", per_million: 10.00, currency: USD, effective_from: 2026-06-24}
+  - {rate_id: anthropic.fable-5-1.output,   app_id: claude_api, measure_id: token.output,      sku_pattern: "claude-fable-5-1*", per_million: 50.00, currency: USD, effective_from: 2026-06-24}
+  - {rate_id: anthropic.fable-5-1.cache_read, app_id: claude_api, measure_id: token.cache_read, sku_pattern: "claude-fable-5-1*", per_million: 0.25, currency: USD, effective_from: 2026-06-24}
+  # Claude Code list cost uses the same API rates. The claude_code app inherits claude_api rate cards via
+  # `inherits_rates_from: claude_api` in its adapter manifest, so no duplicate rows are needed.
+
+  # GitHub Actions hosted runners (private repos), per-minute; verify against docs.github.com billing page.
+  - {rate_id: github.actions.linux,   app_id: github, measure_id: action.minute.linux,   sku_pattern: "*", per_unit: 0.006, currency: USD, effective_from: 2026-01-01, notes: "2-core Linux; larger runners have their own sku rows"}
+  - {rate_id: github.actions.windows, app_id: github, measure_id: action.minute.windows, sku_pattern: "*", per_unit: 0.012, currency: USD, effective_from: 2026-01-01}
+  - {rate_id: github.actions.macos,   app_id: github, measure_id: action.minute.macos,   sku_pattern: "*", per_unit: 0.062, currency: USD, effective_from: 2026-01-01}
+  - {rate_id: github.storage,         app_id: github, measure_id: storage.gb_month,      sku_pattern: "*", per_unit: 0.008, currency: USD, effective_from: 2026-01-01, notes: "verify; Actions/Packages storage per GB-month"}
+
+  # Copilot overage after included AI credits (usage-based billing from 2026-06-01). Token rates are per model
+  # at GitHub's listed API rates; the credit rate is a placeholder to be replaced from the billing page.
+  - {rate_id: copilot.ai_credit.overage, app_id: copilot, measure_id: copilot.ai_credit, sku_pattern: "*", per_unit: 0.04, currency: USD, effective_from: 2026-06-01, tier: overage, notes: "PLACEHOLDER: set from GitHub billing page"}
+
+  # MCP: paid vendor MCP services priced per call, one row per server (examples).
+  - {rate_id: mcp.example_search.call, app_id: mcp, measure_id: mcp.tool_call, sku_pattern: "example-search", per_unit: 0.005, currency: USD, effective_from: 2026-01-01, notes: "example only"}

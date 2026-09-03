@@ -1,0 +1,13 @@
+# Team-paid plans. Coverage by user handle allocates a shared plan across people.
+subscriptions:
+  - sub_id: copilot_business_team
+    app_id: copilot
+    plan: copilot_business
+    price: 19.00
+    currency: USD
+    period: month
+    seats: 2
+    starts_at: 2026-06-01
+    coverage: {apps: [copilot], users: [alice, bob]}
+    included_allowance: {copilot.ai_credit: 3000}
+    allocation_method: usage_share

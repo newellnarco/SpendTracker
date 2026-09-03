@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spendtracker.dev/schema/export-v1.schema.json",
+  "title": "SpendTracker export line v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "event_id", "node", "user", "app", "occurred_at", "measure", "quantity", "source", "adapter"],
+  "properties": {
+    "v": { "const": 1 },
+    "event_id": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "node": { "type": "string", "maxLength": 64 },
+    "user": { "type": "string", "maxLength": 64 },
+    "app": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+    "account": { "type": ["string", "null"] },
+    "project": { "type": ["string", "null"] },
+    "session": { "type": ["string", "null"] },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "measure": { "type": "string", "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$" },
+    "quantity": { "type": "number", "minimum": 0 },
+    "model": { "type": ["string", "null"] },
+    "sku": { "type": ["string", "null"] },
+    "tool_name": { "type": ["string", "null"] },
+    "mcp_server": { "type": ["string", "null"] },
+    "actor": { "type": ["string", "null"] },
+    "source": { "enum": ["hook", "otlp", "api", "transcript", "manual", "import"] },
+    "source_ref": { "type": ["string", "null"] },
+    "adapter": { "type": "string" },
+    "attrs": { "type": "object" }
+  }
+}

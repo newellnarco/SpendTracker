@@ -1,0 +1,32 @@
+# Layers registered at `st init`. Adapters may add more via their manifests.
+apps:
+  - app_id: claude_code
+    display_name: Claude Code
+    vendor: Anthropic
+    category: ai_assistant
+    color: "#D97757"
+  - app_id: claude_api
+    display_name: Claude API
+    vendor: Anthropic
+    category: ai_api
+    color: "#B8552F"
+  - app_id: github
+    display_name: GitHub
+    vendor: GitHub
+    category: scm
+    color: "#24292F"
+  - app_id: copilot
+    display_name: GitHub Copilot
+    vendor: GitHub
+    category: ai_assistant
+    color: "#6E40C9"
+  - app_id: coderabbit
+    display_name: CodeRabbit
+    vendor: CodeRabbit
+    category: review
+    color: "#E8562A"
+  - app_id: mcp
+    display_name: MCP servers
+    vendor: various
+    category: mcp
+    color: "#1F7A8C"

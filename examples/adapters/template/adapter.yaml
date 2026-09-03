@@ -1,0 +1,24 @@
+adapter_api_version: 1
+id: example_vendor
+app:
+  app_id: example_vendor
+  display_name: Example Vendor
+  vendor: Example
+  category: ai_api
+  color: "#888888"
+mechanism: pull
+schedule: "0 * * * *"
+measures:
+  - {id: token.input,  unit_kind: count, display_unit: tokens}   # generic measures may be re-declared for clarity
+  - {id: token.output, unit_kind: count, display_unit: tokens}
+  - {id: request.count, unit_kind: count, display_unit: requests}
+config_schema:
+  type: object
+  required: [api_key_env]
+  properties:
+    api_key_env: {type: string, description: "Name of the env var holding the API key"}
+    base_url: {type: string, default: "https://api.example.com"}
+default_rate_cards:
+  - {rate_id: example_vendor.model-x.input,  measure_id: token.input,  sku_pattern: "model-x*", per_million: 1.00, currency: USD, effective_from: 2026-01-01}
+  - {rate_id: example_vendor.model-x.output, measure_id: token.output, sku_pattern: "model-x*", per_million: 4.00, currency: USD, effective_from: 2026-01-01}
+capabilities: [backfill, health]

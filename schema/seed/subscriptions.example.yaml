@@ -1,0 +1,50 @@
+# Example subscriptions. Prices are illustrative; enter your own.
+subscriptions:
+  - sub_id: claude_max_5x_alice
+    app_id: claude_code
+    plan: claude_max_5x
+    price: 100.00
+    currency: USD
+    period: month
+    seats: 1
+    starts_at: 2026-01-01
+    coverage: {apps: [claude_code], measures: ["token.*", "request.count"]}
+    included_allowance: {}          # no metered allowance; rate-limit windows are not billed units
+    allocation_method: usage_share
+
+  - sub_id: copilot_pro_plus_alice
+    app_id: copilot
+    plan: copilot_pro_plus
+    price: 39.00
+    currency: USD
+    period: month
+    seats: 1
+    starts_at: 2026-06-01
+    coverage: {apps: [copilot], measures: ["copilot.ai_credit", "token.*"]}
+    included_allowance: {copilot.ai_credit: 1500}   # PLACEHOLDER: plan's monthly AI credits
+    allocation_method: usage_share
+
+  - sub_id: coderabbit_pro_team
+    app_id: coderabbit
+    plan: coderabbit_pro
+    price: 24.00                    # per seat per month (annual billing); 30.00 monthly
+    currency: USD
+    period: month
+    seats: 4
+    starts_at: 2026-03-01
+    coverage: {apps: [coderabbit]}
+    included_allowance: {review.count: 0}  # 0 = uncapped on this plan; Pro Plus caps reviews per developer
+    allocation_method: weights
+    allocation_weights: {"project:github.com/acme/api": 0.6, "project:github.com/acme/web": 0.4}
+
+  - sub_id: github_team
+    app_id: github
+    plan: github_team
+    price: 4.00
+    currency: USD
+    period: month
+    seats: 4
+    starts_at: 2026-01-01
+    coverage: {apps: [github], measures: ["seat.count"]}
+    included_allowance: {action.minute.linux: 3000, storage.gb_month: 2}
+    allocation_method: even_daily
