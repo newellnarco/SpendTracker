@@ -40,25 +40,31 @@ Run /fable-review to follow this as a checklist. Edits outside docs/, .claude/, 
 TXT
   else
     cat <<'TXT'
-You are a BUILDER session. You execute one piece of work end to end on a new branch and PR, then stop. You:
-1. Read CONTEXT.md "Current state" and "Next actions"; pick the next unblocked item (or the task the user gave you).
-2. Create a branch `work/<slice>-<topic>`, build, test, commit, push, and open a draft PR for that piece only.
-3. Ask questions with `.claude/hooks/ask.sh --session <sid> "question"` (never edit QUESTIONS.md directly). Do not answer questions; only the Fable session answers.
-4. Record progress and problems with `.claude/hooks/log.sh --session <sid> progress "text"`; record every defect or CI failure with `.claude/hooks/issue.sh` so it is never reproduced. Fix open known issues only when they are assigned to your task.
-5. You may not merge, push to main, or edit CONTEXT.md or the ledgers directly; policy denies these. PRs are opened under the owner's GitHub username only.
-6. Before your last prompt (limit above), run /close-out: log a close entry, file open questions and issues, push, ensure the draft PR exists, then stop.
+You are a BUILDER session. You execute one end-to-end piece of work that the Fable session specified, on its own branch and PR, then stop. You:
+1. Read all context and design before touching code: docs/00-context/CONTEXT.md in full; the reading order in docs/README.md; the active slice in docs/02-delivery/VERTICAL-SLICES.md; docs/02-delivery/PHASE-PLAYBOOK.md; every document your queue entry lists under "Read"; the ADRs it cites.
+2. Pick up your session from the "Builder session queue" in CONTEXT.md: the entry marked `in progress` for your branch if you are resuming (check the branch out from origin and continue), otherwise the first `open` entry that is not `blocked`. If the user gave you a task instead, run it the same way. Do the whole entry: goal, scope, exit criteria. Do not start a second entry.
+3. Act on everything Fable left for you: fix the known issues the entry lists under "Fix issues" (and any open issue assigned to your branch); apply the answers under "Act on answers" and every QUESTIONS.md entry on this branch with Status: answered (an answer is an instruction); make every architecture or code change under "Changes requested by Fable", updating the design docs first when the change is architectural (PHASE-PLAYBOOK step 4).
+4. Ask questions with `.claude/hooks/ask.sh --session <sid> "question"` (never edit QUESTIONS.md directly). Do not answer questions; only the Fable session answers. If the answer blocks the entry, log it, close out, and stop.
+5. Record progress with `.claude/hooks/log.sh --session <sid> progress "BS-nnn: text"`; record every defect or CI failure with `.claude/hooks/issue.sh` so it is never reproduced. Fix open known issues only when they are assigned to your entry or branch.
+6. You may not merge, push to main, or edit CONTEXT.md or the ledgers directly; policy denies these. PRs are opened under the owner's GitHub username only, as drafts.
+7. Before your last prompt (limit above), run /close-out: log a close entry naming the entry id and whether its exit criteria are met, file open questions and issues, push, ensure the draft PR exists, then stop.
 TXT
   fi
 
-  section "CONTEXT.md — current state and next actions"
+  section "CONTEXT.md — current state, next actions and builder session queue"
   if [ -f "$ST_ROOT/$cfile" ]; then
-    awk '/^## Current state/{p=1} /^## Decisions log/{p=0} p' "$ST_ROOT/$cfile" | head -60
+    awk '/^## Current state/{p=1} /^## Decisions log/{p=0} p' "$ST_ROOT/$cfile" | head -160
   else printf '(missing)\n'; fi
 
   section "Open known issues (do not reproduce; fix only if assigned to you)"
   ifile="$(st_policy '.known_issues_file')"
   if [ -f "$ST_ROOT/$ifile" ]; then
     awk '/^### I-/{h=$0} /^- Blast radius:/{br=$0} /^- Assigned:/{if (h ~ / open /) print h "  " br "  " $0; h=""; br=""}' "$ST_ROOT/$ifile" | head -40
+  fi
+
+  section "Answered questions on this branch (act on the answers)"
+  if [ -f "$ST_ROOT/$qfile" ]; then
+    awk '/^### Q-/{h=$0} /^- Status: answered/{a=1} /^- Answer \(Fable\):/{if (a) print h "\n  " $0; a=0}' "$ST_ROOT/$qfile" | tail -40
   fi
 
   section "Pending questions on this branch"
@@ -86,5 +92,5 @@ TXT
   fi
 )"
 # Keep the injected context bounded.
-ctx="$(printf '%s' "$ctx" | head -c 14000)"
+ctx="$(printf '%s' "$ctx" | head -c 24000)"
 st_context "SessionStart" "$ctx"

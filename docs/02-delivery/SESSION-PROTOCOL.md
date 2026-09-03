@@ -11,8 +11,10 @@ session starts with and is enforced by the hooks in `.claude/hooks/` (registered
    hook checks `gh` identity when it can, and the CI `pr-author` job rejects any other author. A PR
    from another identity is closed, not merged.
 2. **Only the Fable session answers questions, curates the ledgers, verifies CI and merges.**
-3. **Builder sessions build one piece of work on their own branch and PR, then stop.** They ask,
-   report progress, record issues, and never merge or touch `main`.
+3. **Builder sessions build one queue entry on their own branch and PR, then stop.** They read all
+   context and design first, take the next open entry of the builder session queue in `CONTEXT.md`
+   (or resume their own in-progress one), fix the issues and apply the answers and changes Fable
+   listed there, ask, report progress, record issues, and never merge or touch `main`.
 4. **No session runs past 40 prompts.** Every session ends with a close-out that leaves its
    questions, issues and progress in the repository.
 5. **Every known issue is in the ledger before anyone moves on.** A CI failure or an observed
@@ -26,7 +28,7 @@ session starts with and is enforced by the hooks in `.claude/hooks/` (registered
 | | Fable session | Builder session (Opus, Sonnet, others) |
 | --- | --- | --- |
 | Model | matches `fable\|mythos` | anything else |
-| Purpose | Read the ledgers, answer questions, curate known issues from CI output, review progress, verify CI tiers and blast radius, merge, update `CONTEXT.md`, check in | Execute one piece of work end to end on its own branch and PR, then stop |
+| Purpose | Read the ledgers, answer questions, curate known issues from CI output, review progress, verify CI tiers and blast radius, merge, write the builder session queue and the rest of `CONTEXT.md`, check in | Read all context and design, pick up the next open (or its own in-progress) entry in the builder session queue, do it end to end on its own branch and PR, acting on the issues, answers and changes Fable listed, then stop |
 | May edit | `docs/`, `.claude/`, `README.md`, `CHANGELOG.md`, `schema/seed/` | anything except the ledger files |
 | Ledger writes | answers (`answer.sh`), issue curation, `CONTEXT.md`, log entries | questions (`ask.sh`), issues (`issue.sh`), log entries (`log.sh`) |
 | Merge / push to main | yes | no |
@@ -45,8 +47,8 @@ sequenceDiagram
     participant F as Fable session
     participant M as main
 
-    Note over B: SessionStart injects role, CONTEXT.md, open issues, pending questions
-    B->>R: branch work/<slice>-<topic>, commits, draft PR by owner username
+    Note over B: SessionStart injects role, CONTEXT.md (state + builder session queue), open issues, answered and pending questions
+    B->>R: take next open BS entry; branch work/<slice>-<topic>, commits, draft PR by owner username
     R->>CI: run tiers selected by blast radius
     CI-->>R: check runs + ci-issues artifact + PR comment
     B->>L: ask.sh (questions) · issue.sh (failures seen) · log.sh progress
@@ -61,7 +63,7 @@ sequenceDiagram
     else anything missing
         F->>L: log why and the next action for a builder
     end
-    F->>M: update CONTEXT.md, commit, push
+    F->>M: update CONTEXT.md (queue: next entries, issues to fix, answers, requested changes), commit, push
     F->>L: log.sh close
 ```
 
@@ -72,7 +74,7 @@ sequenceDiagram
 | `QUESTIONS.md` | builders via `ask.sh`; Fable via `answer.sh` | `Q-YYYYMMDD-xxxx`, Status pending/answered/needs-human, Asked, Question, Context, Answer (Fable), Answered |
 | `KNOWN-ISSUES.md` | any session via `issue.sh`; Fable curates status and assignment | `I-YYYYMMDD-xxxx`, Status open/fixed/wontfix, Title, Signature (hash of check+title, used for de-duplication), Check tier, Blast radius paths, Detail, Ref, Recorded, Assigned |
 | `SESSION-LOG.md` | any session via `log.sh` | `start / progress / close` with session id, model, role, branch, prompt count; `auto` when written by the SessionEnd hook |
-| `CONTEXT.md` | Fable only | current state, next actions sized for one builder session, decisions, open questions, phase history |
+| `CONTEXT.md` | Fable only | current state, owner/Fable next actions, builder session queue (`BS-nnn` entries: slice, branch, goal, read list, scope, exit criteria, issues to fix, answers to act on, changes requested by Fable; status open/in progress/blocked/done), decisions, open questions, phase history |
 
 Random id suffixes mean two branches never collide. Entries are append-only; concurrent edits merge
 by keeping both sides.
