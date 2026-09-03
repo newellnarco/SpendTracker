@@ -69,7 +69,7 @@ CI must be green. If the phase adds an adapter or a schema change, add the corre
 (fixture replay, migration replay).
 
 ### 8. Update context
-Builder sessions: run `/close-out` (log entry, questions and issues filed, branch pushed, draft PR
+Builder sessions: work one builder-session-queue entry from `CONTEXT.md` end to end, then run `/close-out` (log entry, questions and issues filed, branch pushed, draft PR
 under the owner's username). Fable session: run `/fable-review`, then update `CONTEXT.md` (current
 state, next actions, decisions log rows, open questions, research notes table, phase history row)
 and commit to main. A phase is not closed until the Fable session has done this. Roles, limits and
@@ -91,7 +91,7 @@ You are continuing work on SpendTracker. Before doing anything:
 2. Read the section for the active slice in docs/02-delivery/VERTICAL-SLICES.md.
 3. Read docs/02-delivery/PHASE-PLAYBOOK.md and follow its steps in order.
 4. Read only the architecture docs the slice touches.
-Goal for this phase: <one sentence>.
+Goal for this phase: the builder session queue entry <BS-nnn> in CONTEXT.md (or: <one sentence>).
 Constraints: keep the layering rules in ARCHITECTURE.md §7; no new dependencies without an ADR;
 every external fact you rely on must be recorded in a research note with a date and source.
 Finish by updating CONTEXT.md (current state, decisions, open questions, phase history) and
