@@ -1,0 +1,7 @@
+{
+  "name": "spendtracker-docs-export",
+  "private": true,
+  "description": "Builds the Word export of the SpendTracker design, process and controls from the markdown documents.",
+  "scripts": { "build": "node build-export.js" },
+  "dependencies": { "docx": "^9.0.0", "mermaid": "^11.0.0", "playwright": "^1.56.0" }
+}

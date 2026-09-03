@@ -26,3 +26,16 @@
 | **Capability** | A separately deliverable unit of functionality (C-xx in CAPABILITIES.md). |
 | **Vertical slice** | An increment that cuts through collector, store, pricer, UI, tests and CI to deliver visible value (S-x in VERTICAL-SLICES.md). |
 | **CT** | Continuous testing: scheduled test runs against recorded fixtures and live data invariants, independent of code pushes. |
+| **Fable session** | The Claude Code session on the most capable model (`fable\|mythos`). Architect, reviewer and gate: answers questions, curates the ledgers, writes packets and `CONTEXT.md`, verifies CI, merges. Never writes code. (ADR-0007, ADR-0009) |
+| **Builder session** | A Claude Code session on any other model. Builds one task packet on its own branch and draft PR, then stops. Never merges. (ADR-0007, ADR-0010) |
+| **Undeclared session** | A session the platform reported no model for and that has not yet stated `ROLE: fable` or `ROLE: builder`. Carries every builder restriction. (ADR-0009) |
+| **Task packet** | The standalone specification for one builder session: goal, reading list, acceptance criteria, interfaces, file list, checkpoints, tests. `docs/tasks/BS-nnn-<slug>.md`, written by Fable. (PROCESS.md § 3) |
+| **Builder session queue** | The list of `BS-nnn` entries in `CONTEXT.md`, one per builder session, with status open / in progress / blocked / done. Fable writes it. |
+| **Acceptance criterion (AC-n)** | A numbered, testable statement in a packet. The builder reports MET / NOT MET / UNVERIFIED with evidence; Fable runs every one on the PR head before merging. |
+| **Checkpoint** | A step in a packet's build order that ends green and pushed, so a session that hits the prompt limit can hand over and the next session resumes there. |
+| **Ledger** | One of the append-only files in `docs/00-context/`: `QUESTIONS.md`, `KNOWN-ISSUES.md`, `SESSION-LOG.md`, plus `CONTEXT.md`. Written only through the helper scripts by role. |
+| **Close-out** | The last act of a builder session (`/close-out`): AC table, deviations, assumptions, spend; questions and issues filed; branch pushed; draft PR; `log.sh close`. |
+| **Tier** | One of `unit`, `integration`, `system`: the marker every test carries and the named CI check it runs in. (ADR-0008) |
+| **Blast radius** | The set of tiers and test selectors a changed path can affect, from `examples/ci/blast-radius.yaml`; CI runs that set instead of everything. (ADR-0008) |
+| **Signature** | A short hash of check name and failure title that de-duplicates CI failures between `ci-issues.jsonl` and `KNOWN-ISSUES.md`. |
+| **Context boundary** | The rule that only Fable holds the full context and a builder sees its packet plus what it lists. (ADR-0010) |

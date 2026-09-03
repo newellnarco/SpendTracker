@@ -4,9 +4,9 @@ This document defines who does what across the two kinds of Claude Code sessions
 this repository, and the contracts that connect them: the task packet, the question protocol, the
 close log, and Fable's verification.
 
-**Precedence.** The mechanics (roles by model, hooks, ledger files, prompt limit, PR author rule,
-CI tiers) are decided in ADR-0007 and ADR-0008 and specified in
-`docs/02-delivery/SESSION-PROTOCOL.md`; the hooks in `.claude/hooks/` enforce them. This document
+**Precedence.** The mechanics (role determination, hooks, ledger files, prompt limit, PR author rule,
+CI tiers, the builder context boundary) are decided in ADR-0007, ADR-0008, ADR-0009 and ADR-0010
+and specified in `docs/02-delivery/SESSION-PROTOCOL.md`; the hooks in `.claude/hooks/` enforce them. This document
 adds the division of labor and the packet contract on top. Where the two disagree,
 SESSION-PROTOCOL.md wins until an ADR changes it (section 15).
 
@@ -14,33 +14,35 @@ SESSION-PROTOCOL.md wins until an ADR changes it (section 15).
 
 | | Fable session (lead) | Builder session (developer) |
 | --- | --- | --- |
-| Model | matches `fable\|mythos` (`policy.json`) | anything else |
+| Role source (ADR-0009) | model matches `fable\|mythos` (`policy.json`), or `SPENDTRACKER_ROLE=fable`, or `ROLE: fable` declared when no model was reported | any other model, or `SPENDTRACKER_ROLE=builder`, or `ROLE: builder` |
 | Is | architect, project manager, designer, product owner's delegate | developer and tester for one packet |
-| Context | full: design, ADRs, phases, all ledgers, all builder close logs | `docs/PROCESS.md`, its packet, the documents the packet lists, plus what CONTEXT.md and the hooks inject at start (see Q-6 in CONTEXT.md on how wide this should be) |
+| Context (ADR-0010) | full: design, ADRs, phases, all ledgers, all packets, all builder close logs | `docs/PROCESS.md`, its packet, the documents the packet lists, plus what the start hook injects: the current-state table, its own queue entry, open issues, answered questions on its branch, its own log entries. Nothing else unless the packet names it |
 | Writes code | never | yes, inside the packet's file list |
 | Writes tests | acceptance criteria in the packet; may add acceptance fixtures under `schema/seed/` | unit, integration and system tests for its own code |
 | Runs CI and verification | yes, independently, on every PR head | locally before every push |
 | Reviews | code and architecture; issues action items to the builder through the queue entry | may review any PR and comment |
 | Marks a PR ready | yes | yes; any session may |
 | Merges | yes, when green, author-compliant, questions answered, issues recorded | never (hook-denied) |
-| May edit | `docs/`, `.claude/`, `README.md`, `CHANGELOG.md`, `schema/seed/` (`fable_editable_paths`) | anything except the ledger files |
+| May edit | `docs/`, `.claude/`, `README.md`, `CHANGELOG.md`, `schema/seed/` (`fable_editable_paths`) | the packet's "Files you may touch"; never the ledger files, `CONTEXT.md` or another packet (hook-denied) |
 | Ledger writes | answers (`answer.sh`), issue curation, `CONTEXT.md`, log entries | questions (`ask.sh`), issues (`issue.sh`), log entries (`log.sh`) |
 | Ends with | `/fable-review` checklist, `log.sh close` | `/close-out` |
 
-### 1.1 Role is recorded, never assumed
+### 1.1 Role is recorded at start, never assumed (ADR-0009)
 
-The SessionStart hook derives the role from the model and stores it in `.claude/state/`. A
-session cannot see its own model reliably, and a session that started before the hooks were
-checked out has no record and is treated as a builder. In that case the documented override is
-`SPENDTRACKER_ROLE=fable` in the process environment; when the environment cannot be set, the
-session verifies its model with the session tooling (for cloud sessions, `get_session`), corrects
-its state file, and says so in its first `log.sh` entry. A builder never reclassifies itself.
+The SessionStart hook records the role in `.claude/state/` from, in order: `SPENDTRACKER_ROLE` in
+the environment (owner override); the model the platform reports (`fable|mythos` → Fable, else
+builder); otherwise the session is **undeclared** and fails closed (every builder restriction,
+no merge) until a prompt states `ROLE: fable` or `ROLE: builder`. Cloud sessions usually get no
+model from the platform: they establish the role with `get_session` (`session_context.model`),
+declare it verbatim, and say so in their first `log.sh` entry; the log marks such a role
+`fable (declared)`. A role from the model or the owner is never changed by a prompt, the first
+declaration binds for the whole session, and a builder never reclassifies itself.
 
 ## 2. Where things live
 
 | Concept in this document | Where it is in this repository |
 | --- | --- |
-| Task packet | a builder session queue entry `BS-nnn` in `docs/00-context/CONTEXT.md`, expanded into `docs/tasks/BS-nnn-<slug>.md` |
+| Task packet | a builder session queue entry `BS-nnn` in `docs/00-context/CONTEXT.md`, expanded into `docs/tasks/BS-nnn-<slug>.md`; a builder may read only its own packet (ADR-0010) |
 | Phase and task status | `CONTEXT.md` (Current state, Builder session queue, Phase history). Fable writes only. |
 | Decisions | `CONTEXT.md` decisions log, backed by an ADR in `docs/00-context/adr/` for anything architectural |
 | Builder questions and Fable answers | `docs/00-context/QUESTIONS.md` via `ask.sh` and `answer.sh` |
@@ -86,7 +88,8 @@ The full list is `SESSION-PROTOCOL.md` and the builder brief injected at session
 rules this document adds:
 
 1. Read this file and the packet. Then read the packet's list, in order. Do not start from the
-   code.
+   code. Read nothing else unless the packet names it; other packets are hook-denied, and
+   anything missing is asked for with `ask.sh` (ADR-0010).
 2. Build to the acceptance criteria. Do not widen scope, do not refactor outside the allowed
    files, do not build ahead into a later slice.
 3. Write tests for every new code path, in the tier the packet names. Run lint, format, type
@@ -147,7 +150,10 @@ Fable advises and directs; it never makes the code change itself.
 
 ## 8. Branch, merge and rollback
 
-- One packet per branch, named as the packet says (`work/<slice>-<topic>`).
+- One packet per branch. The branch is the one the session was started on: cloud sessions push
+  to the `claude/<slug>` branch the harness assigns, local sessions create the branch the packet
+  names (`work/<slice>-<topic>`). Fable records the actual branch in the queue entry when it goes
+  `in progress`.
 - Builders push only to their branch. Every PR is a draft under the owner's username.
 - Fable merges accepted PRs. While the repository has no CI workflow, PRs are not mergeable
   unless the owner overrides, and the override is logged.
@@ -193,14 +199,12 @@ Several builder sessions may run at once when their packets' file lists and tabl
 (`CAPABILITIES.md`) do not overlap. Ledger conflicts are resolved by keeping both sides; the
 ledgers are append-only.
 
-## 14. Open question: how much context a builder gets
+## 14. How much context a builder gets (decided: ADR-0010)
 
-ADR-0007 and the builder brief say builders read all context and design before touching code.
-The owner has since asked that only Fable hold the full context and that builders receive their
-packet plus what they need to build it. The packets in `docs/tasks/` are written to stand alone
-under either rule. The choice is recorded as Q-6 in `CONTEXT.md` and belongs to the owner; when
-decided it becomes a superseding ADR and a one-line change to the builder brief in
-`session-start.sh`.
+Only Fable holds the full context. A builder receives `docs/PROCESS.md`, its packet, the documents
+the packet lists, and the excerpt the start hook injects; it reads its own packet only and asks for
+anything else. The builder brief in `session-start.sh`, SESSION-PROTOCOL.md (context boundary,
+D-CONTEXT) and the phase playbook state the same rule. Q-6 is resolved.
 
 ## 15. Changing this process
 

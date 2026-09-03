@@ -16,7 +16,7 @@ does not survive between sessions unless it is written down in known places.
 | Code comments `# CONTEXT:` | Pointers from code to the ADR or doc section that explains a non-obvious choice | While building |
 | Commit messages | `S<slice>/<capability>: <what>` prefix, body links to the ADR or research note | Every commit |
 
-## Phase steps
+## Phase steps (D-PHASE)
 
 ```mermaid
 flowchart LR
@@ -31,8 +31,10 @@ flowchart LR
 ```
 
 ### 1. Read
-Read `CONTEXT.md` fully, then the slice section in VERTICAL-SLICES.md, then only the architecture
-documents the slice touches. Do not start from the code.
+Fable sessions read `CONTEXT.md` fully, then the slice section in VERTICAL-SLICES.md, then the
+architecture documents the slice touches, and write the packet from them. Builder sessions read
+`docs/PROCESS.md`, their packet, then the packet's reading list in order (ADR-0010); the start hook
+injects the part of `CONTEXT.md` they need. Nobody starts from the code.
 
 ### 2. Scope
 Write a short phase brief at the top of a new research note or in the PR description:
@@ -69,8 +71,9 @@ CI must be green. If the phase adds an adapter or a schema change, add the corre
 (fixture replay, migration replay).
 
 ### 8. Update context
-Builder sessions: work one builder-session-queue entry from `CONTEXT.md` end to end, then run `/close-out` (log entry, questions and issues filed, branch pushed, draft PR
-under the owner's username). Fable session: run `/fable-review`, then update `CONTEXT.md` (current
+Builder sessions: work one builder-session-queue entry from its packet end to end, then run
+`/close-out` (log entry with the acceptance-criteria table, questions and issues filed, branch
+pushed, draft PR under the owner's username). Fable session: run `/fable-review`, then update `CONTEXT.md` (current
 state, next actions, decisions log rows, open questions, research notes table, phase history row)
 and commit to main. A phase is not closed until the Fable session has done this. Roles, limits and
 ledgers: SESSION-PROTOCOL.md.
@@ -80,22 +83,30 @@ Run the slice's demo script. Paste the outcome into the PR. The Fable session me
 
 ## Kickoff prompt for an AI session
 
-The SessionStart hook injects the role brief and current context automatically
-(SESSION-PROTOCOL.md). Add this to the first prompt to state the goal:
+The SessionStart hook injects the role brief and the context that role needs (SESSION-PROTOCOL.md).
+When the platform reports no model, the first prompt must also state the role (`ROLE: fable` or
+`ROLE: builder`, ADR-0009). Use one of these as the first prompt:
 
-Copy this to start any phase with an AI coding assistant:
+Builder session:
 
 ```
-You are continuing work on SpendTracker. Before doing anything:
-1. Read docs/00-context/CONTEXT.md in full.
-2. Read the section for the active slice in docs/02-delivery/VERTICAL-SLICES.md.
-3. Read docs/02-delivery/PHASE-PLAYBOOK.md and follow its steps in order.
-4. Read only the architecture docs the slice touches.
-Goal for this phase: the builder session queue entry <BS-nnn> in CONTEXT.md (or: <one sentence>).
-Constraints: keep the layering rules in ARCHITECTURE.md §7; no new dependencies without an ADR;
-every external fact you rely on must be recorded in a research note with a date and source.
-Finish by updating CONTEXT.md (current state, decisions, open questions, phase history) and
-listing exactly which documents you changed.
+ROLE: builder
+You are continuing work on SpendTracker. Take the queue entry the session start named
+(or: <BS-nnn>). Read docs/PROCESS.md, then the packet, then the packet's reading list in order;
+nothing else unless the packet names it. Build to the acceptance criteria, one checkpoint at a
+time, pushing after each. Keep the layering rules in ARCHITECTURE.md §7; no dependency outside
+ADR-0006 without asking; record every external fact you rely on in a research note with a date and
+source. Ask with ask.sh, record issues with issue.sh, log progress with log.sh. Finish with
+/close-out before prompt 40.
+```
+
+Fable session:
+
+```
+ROLE: fable
+You are the Fable session for SpendTracker. Run /fable-review: answer pending questions, curate
+known issues from CI output, review each builder PR against its packet's acceptance criteria and
+its CI tiers, merge what is green and answered, update CONTEXT.md, write the next packet, close out.
 ```
 
 ## Close checklist
@@ -106,7 +117,7 @@ listing exactly which documents you changed.
 - [ ] Research notes end with "What this changes"
 - [ ] Tests added; fixtures added to CT replay
 - [ ] CI green; CT jobs updated if needed
-- [ ] `CONTEXT.md` updated (state, next, decisions, questions, history)
+- [ ] `CONTEXT.md` updated by the Fable session (state, next actions, queue, decisions, questions, history) and the next packet written
 - [ ] PR description contains the demo output
 
 ## Redesign and update phases

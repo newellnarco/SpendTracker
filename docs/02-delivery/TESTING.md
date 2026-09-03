@@ -16,15 +16,34 @@
 
 ## Tiers and blast radius
 
-Every test carries exactly one tier marker: `@pytest.mark.unit`, `integration` or `system`. CI runs
-the tiers as separate named checks and selects tests by blast radius (ADR-0008):
+Every test carries exactly one tier marker: `@pytest.mark.unit`, `integration` or `system`
+(registered with `--strict-markers`). CI runs the tiers as separate named checks and selects tests
+by blast radius (ADR-0008). The pyramid levels above map onto the tiers and jobs like this:
+
+| Pyramid level | Tier marker | Runs in |
+| --- | --- | --- |
+| Unit | `unit` | `unit` check |
+| Contract (adapter conformance) | `integration` | `adapters` check (`st adapter test`), nightly `ct-replay` |
+| Integration | `integration` | `integration` check |
+| Data invariants | `integration` | `integration` check; nightly against the synthetic DB |
+| UI and API contract | `system` | `system` check (Playwright) |
+| Migration | `integration` | `integration` check and `schema` check; nightly `ct-migrations` |
+| Performance | no tier marker (`tests/perf`) | nightly `ct-perf` only |
+| Install | none (workflow step) | `build` check; nightly `ct-install` |
+| Live vendor | none (`--live`) | nightly `ct-live` on the runner that has tokens |
+
+Selection by changed path:
 
 | Changed path | Tiers run | Selectors |
 | --- | --- | --- |
 | `src/spendtracker/adapters/<x>/**` | unit, integration | `tests/adapters/<x>`, `tests/integration/test_ingest*.py` |
 | `src/spendtracker/pricer/**` | unit, integration, system | `tests/pricer`, `tests/integration`, `tests/system/test_overview.py` |
 | `src/spendtracker/web/**` | unit, system | `tests/web`, `tests/system` |
-| `schema/**`, `src/spendtracker/core/**`, workflows, `pyproject.toml` | all (full run) | everything |
+| `src/spendtracker/rollup/**` | unit, integration | `tests/rollup`, `tests/integration/test_export*.py` |
+| `src/spendtracker/cli/**` | unit, system | `tests/cli`, `tests/system/test_cli_smoke.py` |
+| `.claude/hooks/**` | integration | `tests/integration/test_session_hooks.py` |
+| `tests/**` | its own tier | the changed test file |
+| `schema/**`, `src/spendtracker/core/**`, workflows, `pyproject.toml`, `uv.lock` | all (full run) | everything |
 | `docs/**`, `examples/**` only | none (docs job only) | — |
 | anything unmapped | all (full run) with a warning | everything |
 
@@ -83,11 +102,16 @@ open `ct` issues.
 ## Local commands
 
 ```
-uv run pytest                      # unit + integration + invariants
-uv run pytest -m ui                # Playwright smoke
+uv run pytest -m unit              # unit tier
+uv run pytest -m integration       # integration tier (invariants, migrations)
+uv run pytest -m system            # system tier (CLI smoke, Playwright)
+uv run ruff check . && uv run ruff format --check . && uv run mypy src
 st adapter test --all              # conformance suite
 uv run pytest --live               # vendor checks (needs tokens in env)
+.claude/hooks/selftest.sh          # session-protocol hooks
 ```
+
+A builder runs the first four lines before every push (PROCESS.md § 4).
 
 ## Test data hygiene
 

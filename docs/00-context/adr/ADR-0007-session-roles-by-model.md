@@ -1,6 +1,6 @@
 # ADR-0007: Session roles are bound to the model and enforced by hooks
 
-**Status:** Accepted — 2026-09-03
+**Status:** Accepted — 2026-09-03. Role binding superseded by ADR-0009 (role from the observed model, else by declaration, undeclared fails closed); builder context narrowed by ADR-0010. The division of labour, ledgers, prompt limit, PR-author rule and hook enforcement stand.
 
 ## Context
 
@@ -14,7 +14,9 @@ for the next Fable session.
 ## Decision
 
 - Role is derived from the `model` reported at `SessionStart` (`fable|mythos` → Fable, else
-  builder) and bound for the life of the session; model switches are blocked.
+  builder) and bound for the life of the session; model switches are blocked. *Superseded by
+  ADR-0009: when the platform reports no model the session is undeclared and fails closed until
+  it declares a role.*
 - Questions, known issues and progress live in three append-only ledger files in
   `docs/00-context/` plus the existing `CONTEXT.md`, written only through helper scripts by role.
 - Hooks enforce the merge, push, edit and prompt-limit rules; CI enforces the PR-author rule.

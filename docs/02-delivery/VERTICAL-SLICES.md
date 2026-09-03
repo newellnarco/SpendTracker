@@ -1,7 +1,9 @@
 # Vertical slices: the iterative build order
 
 Each slice cuts through collection, storage, pricing, UI, tests and CI to deliver something a user
-can see. Every slice ends with the context ledger updated (PHASE-PLAYBOOK.md). Slices are ordered
+can see. A slice is delivered as one or more builder session packets (`docs/tasks/`, PROCESS.md
+§ 3), each sized to one 40-prompt session; every slice ends with the context ledger updated by the
+Fable session (PHASE-PLAYBOOK.md). Slices are ordered
 so that each one is usable on its own and the riskiest assumptions (hooks work, allocation math is
 right, rollup is idempotent) are tested early.
 
@@ -44,9 +46,9 @@ Exit criteria · Demo script**.
 - **Pricing**: list cost from a hand-entered rate card.
 - **UI**: `st serve` renders Overview with "effective this month" (equals list) and a one-series chart.
 - **Tests**: migration test; ingest validator; rate lookup; one Playwright smoke.
-- **CI/CT**: `ci.yml` with ruff, mypy, pytest on Linux and macOS. No CT yet.
-- **Context updates**: CONTEXT.md current state → S0 done; record any deviation from the DDL as ADR-0007.
-- **Exit criteria**: `pipx install` from a wheel built in CI; `st add --app claude_api --measure token.output --qty 1000 --model claude-opus-5` then `st report` prints `$0.025`.
+- **CI/CT**: install `examples/ci/ci.yml` as `.github/workflows/ci.yml` (`pr-author`, `blast-radius`, `lint`, tiered `unit`/`integration`/`system`, `adapters` stub, `schema`, `docs`, `build`) plus the `ci-issues` composite action. No CT yet (BS-002).
+- **Context updates**: CONTEXT.md current state → S0 done (Fable); record any deviation from the DDL as a new ADR (next free number).
+- **Exit criteria**: `pipx install` from a wheel built in CI; `st add --app claude_api --measure token.output --qty 1000 --model claude-opus-5` then `st report` prints `$0.025`. The full list is AC-1 to AC-17 in the packet `docs/tasks/BS-001-s0-walking-skeleton.md`.
 - **Demo**: 5 commands in the README.
 
 ## S1 — Claude Code end-to-end
