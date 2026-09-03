@@ -18,15 +18,21 @@ decision(){ r=$(printf '%s' "$1" | "$H/pre-tool.sh" | jq -r '.hookSpecificOutput
 expect_deny(){ r=$(decision "$2"); [ "$r" = "deny" ] && ok "$1 denied" || bad "$1 expected deny, got $r"; }
 expect_allow(){ r=$(decision "$2"); [ "$r" = "allow" ] && ok "$1 allowed" || bad "$1 expected allow, got $r"; }
 ctx(){ printf '%s' "$1" | "$H/session-start.sh" | jq -r '.hookSpecificOutput.additionalContext'; }
+ctx_as(){ SPENDTRACKER_ROLE="$1" ctx "$2"; }
+role_of(){ jq -r '.role' "$W/.claude/state/sessions/$1.json" 2>/dev/null; }
 
 echo "== session-start"
-c=$(ctx '{"session_id":"fab1","model":"claude-fable-5-1","source":"startup"}')
-printf '%s' "$c" | grep -q 'role: \*\*fable\*\*' && ok "fable role detected" || bad "fable role"
+c=$(ctx_as fable '{"session_id":"fab1","model":"claude-fable-5-1","source":"startup"}')
+printf '%s' "$c" | grep -q 'role: \*\*fable\*\*' && ok "declared fable role recorded" || bad "declared fable role"
 printf '%s' "$c" | grep -q 'You are the FABLE session' && ok "fable brief" || bad "fable brief"
 printf '%s' "$c" | grep -q 'Current state' && ok "CONTEXT.md injected" || bad "CONTEXT.md injected"
-c=$(ctx '{"session_id":"op1","model":"claude-opus-5","source":"startup"}')
-printf '%s' "$c" | grep -q 'role: \*\*builder\*\*' && ok "builder role detected" || bad "builder role"
+c=$(ctx_as builder '{"session_id":"op1","model":"claude-opus-5","source":"startup"}')
+printf '%s' "$c" | grep -q 'role: \*\*builder\*\*' && ok "declared builder role recorded" || bad "declared builder role"
 printf '%s' "$c" | grep -q 'You are a BUILDER session' && ok "builder brief" || bad "builder brief"
+c=$(ctx '{"session_id":"und1","model":"claude-fable-5-1","source":"startup"}')
+printf '%s' "$c" | grep -q 'role: \*\*undeclared\*\*' && ok "no declaration leaves role undeclared" || bad "undeclared role"
+printf '%s' "$c" | grep -q 'has NOT declared a role' && ok "undeclared brief asks for a declaration" || bad "undeclared brief"
+[ "$(role_of und1)" = "undeclared" ] && ok "fable model alone does not grant the fable role" || bad "model inferred a role"
 
 echo "== pre-tool builder"
 expect_deny "edit QUESTIONS" '{"session_id":"op1","tool_name":"Edit","tool_input":{"file_path":"'"$W"'/docs/00-context/QUESTIONS.md"}}'
@@ -51,8 +57,17 @@ expect_deny "mcp merge" '{"session_id":"op1","tool_name":"mcp__github__merge_pul
 expect_deny "mcp push main" '{"session_id":"op1","tool_name":"mcp__github__push_files","tool_input":{"branch":"main"}}'
 expect_allow "mcp push work" '{"session_id":"op1","tool_name":"mcp__github__push_files","tool_input":{"branch":"work/x"}}'
 expect_allow "mcp create PR (reminder only)" '{"session_id":"op1","tool_name":"mcp__github__create_pull_request","tool_input":{"title":"x"}}'
-expect_allow "unknown session edits src (builder default)" '{"session_id":"zzz","tool_name":"Write","tool_input":{"file_path":"src/x.py"}}'
-expect_deny "unknown session merge (builder default)" '{"session_id":"zzz","tool_name":"Bash","tool_input":{"command":"git merge x"}}'
+expect_allow "unknown session edits src (undeclared may build)" '{"session_id":"zzz","tool_name":"Write","tool_input":{"file_path":"src/x.py"}}'
+expect_deny "unknown session merge (undeclared fails closed)" '{"session_id":"zzz","tool_name":"Bash","tool_input":{"command":"git merge x"}}'
+
+echo "== pre-tool undeclared"
+expect_deny "undeclared mcp merge" '{"session_id":"und1","tool_name":"mcp__github__merge_pull_request","tool_input":{"pullNumber":3}}'
+expect_deny "undeclared git merge" '{"session_id":"und1","tool_name":"Bash","tool_input":{"command":"git merge work/x"}}'
+expect_deny "undeclared push main" '{"session_id":"und1","tool_name":"Bash","tool_input":{"command":"git push origin main"}}'
+expect_deny "undeclared edit CONTEXT" '{"session_id":"und1","tool_name":"Write","tool_input":{"file_path":"docs/00-context/CONTEXT.md"}}'
+expect_allow "undeclared edit src" '{"session_id":"und1","tool_name":"Write","tool_input":{"file_path":"src/x.py"}}'
+r=$(printf '%s' '{"session_id":"und1","tool_name":"mcp__github__merge_pull_request","tool_input":{"pullNumber":3}}' | "$H/pre-tool.sh" | jq -r '.hookSpecificOutput.permissionDecisionReason')
+printf '%s' "$r" | grep -q 'has not declared a role' && ok "undeclared merge denial explains the declaration" || bad "undeclared merge reason"
 
 echo "== pre-tool fable"
 expect_allow "fable edit CONTEXT" '{"session_id":"fab1","tool_name":"Edit","tool_input":{"file_path":"'"$W"'/docs/00-context/CONTEXT.md"}}'
@@ -71,8 +86,23 @@ dup=$("$H/issue.sh" --session op1 "tests/pricer/test_alloc.py::test_share: Asser
 [ "$dup" = "$iid" ] && ok "issue dedupes by signature" || bad "issue dedupe got '$dup'"
 "$H/answer.sh" --session op1 "$qid" "no" >/dev/null 2>&1 && bad "builder answer accepted" || ok "builder answer rejected"
 "$H/answer.sh" --session fab1 "$qid" "Seed from schema/seed/*.yaml via st rates apply; COST-MODEL §5." >/dev/null && grep -q "^### $qid · answered" docs/00-context/QUESTIONS.md && grep -q "Answer (Fable): Seed from" docs/00-context/QUESTIONS.md && ok "fable answer applied" || bad "fable answer"
-c=$(ctx '{"session_id":"op2","model":"claude-opus-5","source":"startup"}')
+c=$(ctx_as builder '{"session_id":"op2","model":"claude-opus-5","source":"startup"}')
 printf '%s' "$c" | grep -q "$iid · open" && ok "open issue injected at start" || bad "issue injection"
+
+echo "== role declaration"
+printf '%s' '{"session_id":"dec1","model":"claude-opus-5","source":"startup"}' | "$H/session-start.sh" >/dev/null
+[ "$(role_of dec1)" = "undeclared" ] && ok "new session starts undeclared" || bad "new session role"
+expect_deny "dec1 merge before declaring" '{"session_id":"dec1","tool_name":"mcp__github__merge_pull_request","tool_input":{"pullNumber":1}}'
+echo '{"session_id":"dec1","prompt":"ROLE: fable\nReview the open PRs."}' | "$H/prompt-submit.sh" >/dev/null 2>&1
+[ "$(role_of dec1)" = "fable" ] && ok "ROLE: fable in a prompt is picked up" || bad "prompt declaration got $(role_of dec1)"
+expect_allow "dec1 merge after declaring fable" '{"session_id":"dec1","tool_name":"mcp__github__merge_pull_request","tool_input":{"pullNumber":1}}'
+echo '{"session_id":"dec1","prompt":"ROLE: builder"}' | "$H/prompt-submit.sh" >/dev/null 2>&1
+[ "$(role_of dec1)" = "fable" ] && ok "a declared role is not overwritten by a later prompt" || bad "role overwritten to $(role_of dec1)"
+printf '%s' '{"session_id":"dec2","model":"claude-opus-5","source":"startup"}' | "$H/session-start.sh" >/dev/null
+echo '{"session_id":"dec2","prompt":"role: BUILDER — start on S0"}' | "$H/prompt-submit.sh" >/dev/null 2>&1
+[ "$(role_of dec2)" = "builder" ] && ok "declaration is case-insensitive" || bad "case-insensitive declaration got $(role_of dec2)"
+out=$(echo '{"session_id":"dec3","prompt":"just get started"}' | "$H/prompt-submit.sh" 2>/dev/null)
+printf '%s' "$out" | grep -q 'no declared role' && ok "undeclared session is nudged to declare" || bad "undeclared nudge"
 
 echo "== prompt limit"
 for i in $(seq 1 41); do out=$(echo '{"session_id":"op1","prompt":"x"}' | "$H/prompt-submit.sh" 2>"$W/err"); rc=$?
@@ -88,6 +118,7 @@ echo '{"session_id":"op1","stop_hook_active":true}' | "$H/stop.sh" 2>/dev/null; 
 echo '{"session_id":"op1","stop_hook_active":false}' | "$H/stop.sh" 2>/dev/null; [ $? = 0 ] && ok "stop passes after close-out" || bad "stop after close"
 echo '{"session_id":"op1","prompt":"x"}' | "$H/prompt-submit.sh" 2>/dev/null; [ $? = 2 ] && ok "prompt blocked after close-out" || bad "prompt after close"
 echo '{"session_id":"fab1","session_end_reason":"other"}' | "$H/session-end.sh"; grep -q 'WITHOUT a close-out' docs/00-context/SESSION-LOG.md && ok "session-end auto entry" || bad "session-end"
-echo '{"session_id":"op1"}' | "$H/pre-model-switch.sh" 2>/dev/null; [ $? = 2 ] && ok "model switch blocked" || bad "model switch"
+echo '{"session_id":"op1","model":"claude-sonnet-5"}' | "$H/pre-model-switch.sh" 2>/dev/null; [ $? = 0 ] && ok "model switch allowed (role is declared, not bound to the model)" || bad "model switch"
+[ "$(role_of op1)" = "builder" ] && ok "role survives a model switch" || bad "role after switch got $(role_of op1)"
 echo; echo "passed=$pass failed=$fail"
 [ $fail = 0 ]

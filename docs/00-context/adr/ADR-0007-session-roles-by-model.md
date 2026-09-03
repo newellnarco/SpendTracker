@@ -1,6 +1,14 @@
 # ADR-0007: Session roles are bound to the model and enforced by hooks
 
-**Status:** Accepted — 2026-09-03
+**Status:** Superseded in part — 2026-09-03
+
+> The role-binding mechanism below is superseded by `docs/PROCESS.md` 1.1: the role is declared in
+> the session's opening prompt, never inferred from the model, because a session cannot reliably
+> tell which model it runs on and the serving model can change mid-session. A session that declares
+> nothing is undeclared and fails closed. Everything else in this ADR — the division of labour, the
+> ledgers, the prompt limit, the PR-author rule, hook enforcement — still stands. The trade-off the
+> change accepts: the declaration is self-reported, so branch protection on `main`, not the hooks,
+> is what ultimately prevents an unwanted merge.
 
 ## Context
 
@@ -13,8 +21,10 @@ for the next Fable session.
 
 ## Decision
 
-- Role is derived from the `model` reported at `SessionStart` (`fable|mythos` → Fable, else
-  builder) and bound for the life of the session; model switches are blocked.
+- ~~Role is derived from the `model` reported at `SessionStart` (`fable|mythos` → Fable, else
+  builder) and bound for the life of the session; model switches are blocked.~~ Superseded: the
+  role is declared (`ROLE: fable` / `ROLE: builder`) and bound for the life of the session at its
+  first declaration; model switches are allowed because they no longer carry the role.
 - Questions, known issues and progress live in three append-only ledger files in
   `docs/00-context/` plus the existing `CONTEXT.md`, written only through helper scripts by role.
 - Hooks enforce the merge, push, edit and prompt-limit rules; CI enforces the PR-author rule.
@@ -25,6 +35,7 @@ for the next Fable session.
 
 - Review and merge quality is concentrated in one model; builder throughput scales with sessions.
 - Cost: every merge costs a Fable session. Acceptable to the owner; SpendTracker itself will show it.
-- The hooks are guardrails, not a sandbox; branch protection on `main` is the backstop.
+- The hooks are guardrails, not a sandbox; branch protection on `main` is the backstop. Under
+  declared roles the backstop carries more weight, since the declaration is self-reported.
 - Builder work must be sized to 40 prompts. `CONTEXT.md` next actions are written at that size.
 - Hooks apply to every session in the repo including the one that authored them.

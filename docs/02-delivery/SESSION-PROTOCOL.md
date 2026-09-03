@@ -1,8 +1,15 @@
-# Session protocol: roles by model, prompt limits, ledgers, CI and merges
+# Session protocol: declared roles, prompt limits, ledgers, CI and merges
 
-Two kinds of Claude Code sessions work on this repository. The role is decided by the model the
-session starts with and is enforced by the hooks in `.claude/hooks/` (registered in
-`.claude/settings.json`, tunable in `.claude/hooks/policy.json`).
+Two kinds of Claude Code sessions work on this repository. The role is **declared, never inferred**
+(`docs/PROCESS.md` 1.1): a session cannot reliably tell which model it runs on, and the serving
+model can change mid-session. The declaration is enforced by the hooks in `.claude/hooks/`
+(registered in `.claude/settings.json`, tunable in `.claude/hooks/policy.json`).
+
+A session declares its role by stating `ROLE: fable` or `ROLE: builder` in its opening prompt, or by
+starting Claude Code with `SPENDTRACKER_ROLE` set. Until it does, the session is **undeclared**: it
+may read and build, but it may not merge, push to a protected branch or write the ledger files. An
+undeclared session must ask which role it is running as before doing anything else. The first
+declaration wins for the life of the session; a later prompt cannot change it.
 
 ## Hard rules
 
@@ -25,14 +32,14 @@ session starts with and is enforced by the hooks in `.claude/hooks/` (registered
 
 ## Roles
 
-| | Fable session | Builder session (Opus, Sonnet, others) |
+| | Fable session | Builder session |
 | --- | --- | --- |
-| Model | matches `fable\|mythos` | anything else |
+| Declared as | `ROLE: fable` | `ROLE: builder` |
 | Purpose | Read the ledgers, answer questions, curate known issues from CI output, review progress, verify CI tiers and blast radius, merge, write the builder session queue and the rest of `CONTEXT.md`, check in | Read all context and design, pick up the next open (or its own in-progress) entry in the builder session queue, do it end to end on its own branch and PR, acting on the issues, answers and changes Fable listed, then stop |
 | May edit | `docs/`, `.claude/`, `README.md`, `CHANGELOG.md`, `schema/seed/` | anything except the ledger files |
 | Ledger writes | answers (`answer.sh`), issue curation, `CONTEXT.md`, log entries | questions (`ask.sh`), issues (`issue.sh`), log entries (`log.sh`) |
 | Merge / push to main | yes | no |
-| Switch model mid-session | no | no |
+| Switch model mid-session | yes, the role does not change | yes, the role does not change |
 | Prompt limit | 40 | 40 |
 | Ends with | `log.sh close` after `/fable-review` | `/close-out` |
 
@@ -106,16 +113,17 @@ note; when the PR merges, the ledgers merge with it.
 
 | Rule | Hook | Mechanism |
 | --- | --- | --- |
-| Role from starting model | `SessionStart` → `session-start.sh` | `model` field, stored in `.claude/state/sessions/<id>.json` (gitignored) |
+| Role is declared, not inferred | `SessionStart` → `session-start.sh`, `UserPromptSubmit` → `prompt-submit.sh` | `SPENDTRACKER_ROLE` at start, else the first `ROLE: fable`/`ROLE: builder` in a prompt, else `undeclared`; stored in `.claude/state/sessions/<id>.json` (gitignored) |
+| Undeclared sessions fail closed | `PreToolUse` → `pre-tool.sh` | every builder restriction applies until a role is declared, so a session that never declares can never merge |
 | Context on start | same | `additionalContext` with role brief, `CONTEXT.md` current state, open known issues, pending questions on this and other branches, open branches/PRs, last log entries |
 | 40-prompt limit | `UserPromptSubmit` → `prompt-submit.sh` | counter per session; warning at 35, forced close-out instruction at 40, prompts blocked (exit 2) at 41+ or after close-out |
 | Close-out before ending at the limit | `Stop` → `stop.sh` | blocks the stop (exit 2) with instructions when prompts ≥ 40 and no close entry |
 | Unfinished sessions are visible | `SessionEnd` → `session-end.sh` | appends an `auto` close entry when no close-out was logged |
-| Builders cannot merge or touch main | `PreToolUse` → `pre-tool.sh` | denies `git merge`, `gh pr merge`, pushes to protected branches or force pushes, `git checkout main`, GitHub MCP merge/auto-merge tools, MCP file writes to main |
-| Builders cannot answer or edit ledgers directly | same | denies Edit/Write to the ledger files and shell writes to them; denies `answer.sh` |
+| Anything but a declared Fable session cannot merge or touch main | `PreToolUse` → `pre-tool.sh` | denies `git merge`, `gh pr merge`, pushes to protected branches or force pushes, `git checkout main`, GitHub MCP merge/auto-merge tools, MCP file writes to main |
+| Anything but Fable cannot answer or edit ledgers directly | same | denies Edit/Write to the ledger files and shell writes to them; denies `answer.sh` |
 | Fable does not build | same | denies Edit/Write outside the Fable-editable paths |
 | PR author is the owner | same + CI `pr-author` job | `gh api user` check when `gh` exists; reminder on the MCP tool; CI fails any other author |
-| Roles cannot be swapped by switching model | `PreModelSwitch` → `pre-model-switch.sh` | blocks the switch |
+| A model switch does not change the role | `PreModelSwitch` → `pre-model-switch.sh` | allows the switch and records the new model; the declared role is untouched |
 
 ## What the hooks cannot enforce
 
@@ -124,10 +132,13 @@ note; when the PR merges, the ledgers merge with it.
   the backstop; enable it.
 - Prompt counting is per session id. `/clear` starts a new id and a new count; a session that
   clears to dodge the limit is visible in the log as an `auto` close entry without a real close-out.
-- Sessions started before the hooks existed have no recorded model and are treated as builders.
-  Set `SPENDTRACKER_ROLE=fable` in the Claude Code process environment to override for one
-  session. Hooks also apply to the session that authored them; this design session was classed as
-  a builder and could not edit `CONTEXT.md`, which is why that update is listed as a next action.
+- **The declaration is self-reported.** A session that states `ROLE: fable` gets Fable's rights,
+  including merge. The hooks make the declaration explicit, recorded and hard to do by accident;
+  they cannot prove it is true. Branch protection on `main` is what actually stops an unwanted
+  merge, which makes enabling it more important under declared roles than it was under roles by
+  model. Sessions that never declare fail closed and can never merge.
+- Hooks apply to the session that authored them: a session editing `.claude/hooks/` is bound by
+  the version already on disk, not the one it is writing.
 - The Fable "no building" rule is a path allowlist over Edit/Write; it does not stop shell commands
   that write code. It is a guardrail, not a sandbox.
 - The `pre-tool` PR-author check needs `gh`; the MCP path is enforced by CI only.
