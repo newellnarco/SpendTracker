@@ -17,6 +17,7 @@
 13. [`02-delivery/PHASE-PLAYBOOK.md`](02-delivery/PHASE-PLAYBOOK.md) — how to run any phase without losing context.
 14. [`02-delivery/TESTING.md`](02-delivery/TESTING.md) and [`02-delivery/CI-CD.md`](02-delivery/CI-CD.md).
 15. [`02-delivery/SESSION-PROTOCOL.md`](02-delivery/SESSION-PROTOCOL.md) — hard rules, roles by model, prompt limits, the ledgers ([`QUESTIONS.md`](00-context/QUESTIONS.md), [`KNOWN-ISSUES.md`](00-context/KNOWN-ISSUES.md), [`SESSION-LOG.md`](00-context/SESSION-LOG.md)), CI tiers and blast radius.
+16. [`PROCESS.md`](PROCESS.md) — division of labor between Fable and builder sessions and the task packet contract. Packets, one per builder session queue entry, live in [`tasks/`](tasks/).
 
 ## Architecture Decision Records
 
