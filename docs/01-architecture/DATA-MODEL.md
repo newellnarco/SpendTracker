@@ -28,6 +28,9 @@ erDiagram
     SUBSCRIPTION ||--o{ COST_LINE : "allocated from"
     BUDGET ||--o{ BUDGET_ALERT : raises
     USAGE_EVENT }o--o| RAW_PAYLOAD : "archived as"
+    APP ||--o{ FINDING : "about"
+    MEASURE ||--o{ FINDING : "waste unit"
+    FINDING ||--o{ PROPOSAL : "proposes"
 
     NODE {
         text node_id PK
@@ -175,6 +178,30 @@ erDiagram
         text key PK
         text value
     }
+    FINDING {
+        text finding_id PK
+        text signature UK
+        text rule_id
+        text scope_type
+        text scope_key
+        text period_key
+        text severity
+        real waste_quantity
+        int waste_micros
+        text evidence
+        text status
+    }
+    PROPOSAL {
+        text proposal_id PK
+        text finding_id FK
+        text template_id
+        real est_saving_quantity
+        int est_saving_micros
+        text basis
+        text effort
+        text status
+        text verification
+    }
     FX_RATE {
         text base PK
         text quote PK
@@ -241,6 +268,9 @@ erDiagram
 | `commit.count` / `pr.count` | claude_code | count | OTel |
 | `action.minute.<os>` | github | duration_s (stored as minutes × 60) | github_billing (`sku` keeps the exact runner SKU) |
 | `storage.gb_month` | github | count | github_billing (Actions storage, Packages, LFS) |
+| `action.job.seconds` | github | duration_s | github_actions_runs (one per job; `sku` = runner label; self-hosted priced at 0) |
+| `action.run.count` | github | count | github_actions_runs (one per run; `session` = run) |
+| `action.job.cancelled.seconds` | github | duration_s | github_actions_runs (seconds of jobs with conclusion `cancelled`) |
 | `codespaces.core_hour` | github | count | github_billing |
 | `seat.count` | NULL | count | github_billing, copilot, coderabbit (seat snapshots per day) |
 | `copilot.ai_credit` | copilot | count | copilot adapter, `/settings/billing/ai_credit/usage` |
@@ -257,7 +287,7 @@ Adapters register additional measures in their manifest; the ingest validator re
 1. **Project**: from `cwd` at hook time (git remote normalized to `host/org/repo`), from `repositoryName` on GitHub billing lines, from the PR's repository for CodeRabbit, otherwise NULL.
 2. **Account**: from the credential used to collect (GitHub login, Anthropic org) or from the OTel `user.account_uuid` / `organization.id` attributes.
 3. **Actor**: the person the usage is for. Defaults to `node.user_handle`; GitHub per-user billing lines and Copilot reports carry explicit logins.
-4. **Session**: Claude Code `session_id`; GitHub Actions `run_id` when present in attrs; otherwise NULL.
+4. **Session**: Claude Code `session_id`; GitHub Actions `run_id` (the `github_actions_runs` adapter creates the session with workflow, event, branch and conclusion in `attrs`; billing lines join it through `attrs.run_id` when present); otherwise NULL.
 
 ## 5. Sizing and retention
 
@@ -278,3 +308,21 @@ the aggregates. Exports made before compaction are unaffected because the rollup
 - A migration that adds a dimension column to `usage_event` must also add it to the export schema
   (AGGREGATION.md) and bump `export_schema_version`.
 - `st migrate` refuses to run if the database version is newer than the binary.
+
+## 7. Findings and proposals (migration 002, designed)
+
+DDL: [`schema/002_findings.sql`](../../schema/002_findings.sql). Semantics: FINDINGS.md, ADR-0011.
+Both tables are derived and recomputable; human state attaches to `finding.signature`.
+
+| Table | Purpose | Notes |
+| --- | --- | --- |
+| `finding` | One detected instance of a rule over a scope and period. | `signature` unique; `evidence` JSON holds the counterfactual and the event/session ids; `waste_quantity` in `measure_id` units and `waste_micros` priced like the events. Status `open`, `accepted`, `dismissed`, `resolved`. |
+| `proposal` | One change attached to a finding. | `est_saving_*` per period with `basis` (`measured`, `extrapolated`, `assumed`) and the measured window; `overlaps_with` lists proposals that explain the same quantity; status `open`, `accepted`, `applied`, `verified`, `dismissed`; `verification` JSON after the after-window is measured. |
+| `v_proposal_ranked` | Open proposals ordered by estimated saving. | Source of the Findings page and `st findings list`. |
+
+ERD additions: `FINDING }o--|| APP`, `FINDING ||--o{ PROPOSAL`, `FINDING }o--o| MEASURE`. Findings
+reference events only inside `evidence` (ids), never by foreign key, so compaction (§5) does not
+invalidate them.
+
+Sizing: tens of findings per node per month. Export: both tables are exported with the events
+(AGGREGATION.md); evidence follows the redaction level.

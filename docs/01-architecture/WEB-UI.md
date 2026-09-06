@@ -18,11 +18,13 @@ flowchart TB
     col[Collectors]
     rec[Reconciliation]
     set[Settings]
+    fnd[Findings]
 
     ov --> tr
     ov --> apps --> sess
     ov --> types
     ov --> bud --> sub
+    ov --> fnd --> proj
     apps --> proj
     col --> set
     rec --> sub
@@ -32,12 +34,13 @@ flowchart TB
 
 | Page | Question it answers | Main widgets | Source view |
 | --- | --- | --- | --- |
-| **Overview** | Where am I this month? | Effective spend vs budget (all budgets as progress bars with forecast marker); stacked daily area by app; "savings vs list" tile; top 5 projects; unpriced-events warning; stale collectors warning | `v_daily_cost`, `v_budget_status`, `collector_run` |
+| **Overview** | Where am I this month? | Effective spend vs budget (all budgets as progress bars with forecast marker); stacked daily area by app; "savings vs list" tile; "open proposals: N, est. saving X / month" tile; top 5 projects; unpriced-events warning; stale collectors warning | `v_daily_cost`, `v_budget_status`, `collector_run` |
 | **Trends** | How is it moving? | Line/area per app or measure over day/week/month buckets; period comparison (this vs last); moving average; toggle effective / list / reported | `v_daily_cost`, `v_daily_usage` |
 | **By app** | Which layer costs what, in its own units and in money? | One card per app: native measures (tokens by type, minutes by runner, credits, reviews, MCP calls), effective vs list, utilization of its subscription, drill into model/sku breakdown | `v_daily_usage`, `v_daily_cost`, `subscription` |
 | **By type** | Which kind of unit drives spend? | Grouping by `measure.unit_kind` and by `app.category`: tokens vs minutes vs actions vs seats; treemap of effective cost | `v_daily_usage` joined to `measure` |
 | **Sessions** | What did a session cost? | Table of sessions (app, project, model, tokens, MCP calls, list, effective); session detail timeline of events | `v_session_summary` |
 | **Projects** | Which repo consumes what? | Per-project cost across apps (Claude Code tokens + Actions minutes + CodeRabbit reviews on the same repo) | `v_daily_cost` grouped by project |
+| **Findings** | What is wasted and what do I change? | Ranked proposals with estimated saving per period and basis badge; filters by rule pack, scope, status, severity; finding detail drawer with the evidence table (run ids link to the vendor page), the counterfactual, lifecycle buttons (accept, dismiss, applied with ref, verify); overlap warning when two proposals explain the same quantity | `v_proposal_ranked`, `finding`, `proposal` |
 | **Budgets** | Am I on track? | Budget list with period, spent, forecast, alerts; create/edit form | `v_budget_status`, `budget_alert` |
 | **Subscriptions & rates** | What are my plans and prices? | Subscription editor (coverage, allowance, allocation method); rate card table with effective dates; "apply seed" and "sync from team" buttons | `subscription`, `rate_card` |
 | **Collectors** | Is data flowing? | Adapter status cards: last run, lag, events inserted, errors, next run; "run now" | `collector_run`, `adapter_state` |
@@ -60,6 +63,7 @@ Served under `/api/v1`; the pages call the same endpoints via htmx so the API is
 | `POST /ingest` | Accepts an array of usage-event envelopes (used by out-of-process adapters and the mcp-proxy) |
 | `POST /otlp/v1/logs`, `POST /otlp/v1/metrics` | OTLP/HTTP JSON receiver (also mounted at `/v1/logs` and `/v1/metrics` for exporters that do not allow a path prefix) |
 | `GET /collectors`, `POST /collectors/{adapter}/run` | Health and manual trigger |
+| `GET /findings?status&scope&pack&min_saving`, `GET /findings/{id}`, `PATCH /proposals/{id}` (status, note, applied_ref), `POST /findings/run` | Findings and proposals (FINDINGS.md §7) |
 | `GET /health` | Liveness, schema version, DB path, spool depth |
 | `GET /export?period=YYYY-MM` | Streams the JSONL export |
 

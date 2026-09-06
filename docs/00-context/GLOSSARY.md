@@ -25,4 +25,9 @@
 | **Rollup** | The aggregate database and dashboard built from all nodes' export batches. |
 | **Capability** | A separately deliverable unit of functionality (C-xx in CAPABILITIES.md). |
 | **Vertical slice** | An increment that cuts through collector, store, pricer, UI, tests and CI to deliver visible value (S-x in VERTICAL-SLICES.md). |
+| **Finding** | One detected instance of a waste, risk or gap pattern over a scope and period, with evidence, a counterfactual and a quantified cost. Derived and recomputable; stored in `finding` (FINDINGS.md). |
+| **Proposal** | One concrete change attached to a finding, with an estimated saving per period, its basis (measured, extrapolated, assumed), an effort class and a lifecycle (open, accepted, applied, verified, dismissed). Stored in `proposal`. |
+| **Rule** | A pure function over the store that produces findings. Declared in a manifest with the measures and attributes it reads and the proposal templates it emits. |
+| **Rule pack** | The rules shipped by one adapter (`adapters/<id>/rules/`) or by the core. The GitHub Actions pack is the first. |
+| **Waste** | The part of a measured quantity a rule judges avoidable under a stated counterfactual, priced like the events it comes from. |
 | **CT** | Continuous testing: scheduled test runs against recorded fixtures and live data invariants, independent of code pushes. |

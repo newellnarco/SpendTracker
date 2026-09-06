@@ -5,18 +5,19 @@
 1. [`00-context/CONTEXT.md`](00-context/CONTEXT.md) — the living ledger. Which slice is active, what has been decided, what is open. **Read this first in every phase; the Fable session updates it last in every phase** (ADR-0007).
 2. [`00-context/GLOSSARY.md`](00-context/GLOSSARY.md) — the vocabulary used everywhere else.
 3. [`01-architecture/ARCHITECTURE.md`](01-architecture/ARCHITECTURE.md) — system overview, C4 views, UML.
-4. [`01-architecture/DATA-MODEL.md`](01-architecture/DATA-MODEL.md) — ERD and table dictionary; DDL lives in [`../schema/001_core.sql`](../schema/001_core.sql).
+4. [`01-architecture/DATA-MODEL.md`](01-architecture/DATA-MODEL.md) — ERD and table dictionary; DDL lives in [`../schema/001_core.sql`](../schema/001_core.sql) and [`../schema/002_findings.sql`](../schema/002_findings.sql).
 5. [`01-architecture/COLLECTORS.md`](01-architecture/COLLECTORS.md) — integration points and hooks for each app.
 6. [`01-architecture/COST-MODEL.md`](01-architecture/COST-MODEL.md) — measures to money, subscriptions, budgets, currency.
 7. [`01-architecture/AGGREGATION.md`](01-architecture/AGGREGATION.md) — multi-user rollup to a repository.
 8. [`01-architecture/WEB-UI.md`](01-architecture/WEB-UI.md) — local web interface and its API.
-9. [`01-architecture/ADAPTER-SPEC.md`](01-architecture/ADAPTER-SPEC.md) — the contract for adding a new layer.
-10. [`01-architecture/SECURITY-PRIVACY.md`](01-architecture/SECURITY-PRIVACY.md) — secrets, PII, redaction.
-11. [`02-delivery/CAPABILITIES.md`](02-delivery/CAPABILITIES.md) — separable units of work.
-12. [`02-delivery/VERTICAL-SLICES.md`](02-delivery/VERTICAL-SLICES.md) — the iterative build order.
-13. [`02-delivery/PHASE-PLAYBOOK.md`](02-delivery/PHASE-PLAYBOOK.md) — how to run any phase without losing context.
-14. [`02-delivery/TESTING.md`](02-delivery/TESTING.md) and [`02-delivery/CI-CD.md`](02-delivery/CI-CD.md).
-15. [`02-delivery/SESSION-PROTOCOL.md`](02-delivery/SESSION-PROTOCOL.md) — hard rules, roles by model, prompt limits, the ledgers ([`QUESTIONS.md`](00-context/QUESTIONS.md), [`KNOWN-ISSUES.md`](00-context/KNOWN-ISSUES.md), [`SESSION-LOG.md`](00-context/SESSION-LOG.md)), CI tiers and blast radius.
+9. [`01-architecture/FINDINGS.md`](01-architecture/FINDINGS.md) — findings, proposals and rule packs: from usage to changes.
+10. [`01-architecture/ADAPTER-SPEC.md`](01-architecture/ADAPTER-SPEC.md) — the contract for adding a new layer.
+11. [`01-architecture/SECURITY-PRIVACY.md`](01-architecture/SECURITY-PRIVACY.md) — secrets, PII, redaction.
+12. [`02-delivery/CAPABILITIES.md`](02-delivery/CAPABILITIES.md) — separable units of work.
+13. [`02-delivery/VERTICAL-SLICES.md`](02-delivery/VERTICAL-SLICES.md) — the iterative build order.
+14. [`02-delivery/PHASE-PLAYBOOK.md`](02-delivery/PHASE-PLAYBOOK.md) — how to run any phase without losing context.
+15. [`02-delivery/TESTING.md`](02-delivery/TESTING.md) and [`02-delivery/CI-CD.md`](02-delivery/CI-CD.md).
+16. [`02-delivery/SESSION-PROTOCOL.md`](02-delivery/SESSION-PROTOCOL.md) — hard rules, roles by model, prompt limits, the ledgers ([`QUESTIONS.md`](00-context/QUESTIONS.md), [`KNOWN-ISSUES.md`](00-context/KNOWN-ISSUES.md), [`SESSION-LOG.md`](00-context/SESSION-LOG.md)), CI tiers and blast radius.
 
 ## Architecture Decision Records
 
@@ -30,6 +31,7 @@
 | [ADR-0006](00-context/adr/ADR-0006-implementation-stack.md) | Python, SQLite, FastAPI, htmx and Chart.js as the reference stack |
 | [ADR-0007](00-context/adr/ADR-0007-session-roles-by-model.md) | Session roles bound to the model and enforced by hooks |
 | [ADR-0008](00-context/adr/ADR-0008-ci-tiers-blast-radius-issue-ledger.md) | CI runs tiered tests by blast radius and feeds a known-issues ledger |
+| [ADR-0011](00-context/adr/ADR-0011-findings-and-proposals.md) | Findings and proposals are derived rows produced by rule packs that adapters ship; run-level GitHub Actions collection is its own adapter |
 
 ## Diagram index
 
@@ -48,6 +50,7 @@ All diagrams are Mermaid blocks rendered by GitHub. Search for the diagram id to
 | `D-COST` | Cost derivation pipeline | COST-MODEL.md |
 | `D-ROLLUP` | Multi-user rollup flow | AGGREGATION.md |
 | `D-UI` | UI navigation map | WEB-UI.md |
+| `D-FIND` | Findings pipeline (rules to proposals to verification) | FINDINGS.md |
 | `D-SLICES` | Gantt of vertical slices | VERTICAL-SLICES.md |
 | `D-CAPDEP` | Capability dependency graph | CAPABILITIES.md |
 | `D-PIPE` | CI/CD/CT pipeline | CI-CD.md |

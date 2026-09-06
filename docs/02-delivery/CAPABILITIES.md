@@ -37,6 +37,9 @@ page or adapter. Vertical slices (VERTICAL-SLICES.md) pick a thin path through s
 | C-28 | Retention and compaction | `st compact`, aggregate rows, cost recompute | C-07 | totals preserved before/after |
 | C-29 | Tracker observability | `st doctor`, `/health`, structured logs | C-01 | doctor detects missing hooks, stale collectors, token-looking config values |
 | C-30 | Packaging and self-update | wheel, `pipx`/`uv tool`, `st upgrade`, release workflow | — | install smoke on macOS/Linux/Windows runners |
+| C-31 | GitHub Actions runs adapter | `github_actions_runs`: runs + jobs pull, runner-label pricing, run sessions, cancelled-work measure, repository discovery vs billing page | C-02, C-05, C-17 | recorded fixtures for MAX3 and Maxresearchcollective 2026-09 (redacted); self-hosted priced at 0; cursor re-fetch of the trailing 2 days; reconciliation with billing lines |
+| C-32 | Findings engine and core rule pack | `finding`/`proposal` tables (002), rule manifest and loader, signatures, lifecycle, `st findings run/list/show/test`, `st proposals ...`, core rules (`sub.*`, `price.*`, `collect.*`, `budget.*`) | C-01, C-07 | signature stability on replay; human state survives recomputation; golden fixtures; invariant that waste ≤ measured quantity |
+| C-33 | GitHub Actions rule pack and Findings page | `adapters/github_actions_runs/rules/` (FINDINGS.md §5.1), `examples/findings/github-actions-2026-09.jsonl` golden case, Findings page and API, Overview tile, `st findings export` | C-31, C-32, C-11 | golden case reproduces the seven 2026-09 proposals; page snapshot; verification before/after math |
 
 ## Dependency graph (D-CAPDEP)
 
@@ -64,6 +67,11 @@ flowchart TB
     C07 --> C28[C-28 compaction]
     C01 --> C29[C-29 doctor]
     C30[C-30 packaging]
+    C17 --> C31[C-31 GH Actions runs]
+    C07 --> C32[C-32 findings engine]
+    C31 --> C33[C-33 GHA rules + page]
+    C32 --> C33
+    C11 --> C33
 ```
 
 ## Ownership of state per capability
@@ -77,6 +85,7 @@ flowchart TB
 | C-22 scheduler | collector_run, adapter_state | — |
 | C-23 export | export_batch | usage_event, session, project, account |
 | C-24 rollup | all, in rollup.db | export files, team YAML |
+| C-32/33 findings | finding, proposal | usage_event, session, cost_line, subscription, adapter attrs |
 
 No two capabilities write the same table except through `core.ingest` and the pricer, which keeps
 the concurrency story simple.
