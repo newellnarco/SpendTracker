@@ -13,3 +13,6 @@ Answered Q-20260903-2afc (PR_AUTHOR_LOGIN set by owner; branch protection still 
 
 ## 2026-09-06T01:48:22Z · progress · session `8a142028-580c-5980-8a46-d4480bbcb9cc` · unknown · builder · branch `claude/github-action-minutes-usage-oz4jr0` · prompts 6
 Owner task (not a queue entry): add GitHub Actions run-level usage collection and a findings-and-proposals capability to the design, using the 2026-09-06 Actions minutes analysis (MAX3, Maxresearchcollective, netsniff, SpendTracker) as the worked example. Docs-only design phase: research note, ADR-0011, FINDINGS.md, COLLECTORS §4b, schema/002_findings.sql, capabilities C-31..C-33, slice S3b.
+
+## 2026-09-06T01:54:43Z · close · session `8a142028-580c-5980-8a46-d4480bbcb9cc` · unknown · builder · branch `claude/github-action-minutes-usage-oz4jr0` · prompts 6
+Owner task (proposed BS-003 / slice S3b): design delta for GitHub Actions run-level usage and a findings-and-proposals layer, derived from the 2026-09-06 Actions minutes analysis. Exit: docs-only phase complete (research note, ADR-0011, FINDINGS.md, COLLECTORS §4b, schema/002_findings.sql, golden fixture, C-31..C-33, S3b, README); no code, no CI tiers (none exist yet). Draft PR #8 under newellnarco. Questions: Q-20260906-c901. Issues: I-20260906-c1c9. Fable: fold the research note, ADR-0011 and the proposed BS-003 entry into CONTEXT.md.
