@@ -124,6 +124,25 @@ units and are not modelled; a future adapter can record `ratelimit.hit` events f
 | Seats | `seat.count` snapshot per day from the plan endpoint or manual config; priced via a `github_team` subscription |
 | Gaps | Included free minutes appear as `discountAmount`; the pricer treats netAmount as authoritative reported cost and list cost from the rate card shows the pre-discount value |
 
+### 4b. GitHub Actions runs (`github_actions_runs`)
+
+The billing endpoint answers "how much per repository per day". It cannot say which workflow, job,
+trigger or branch spent it, and it is not reachable from a Claude Code session (research note
+`S3-github-actions-run-usage.md`). This adapter collects run and job facts so the findings engine
+(FINDINGS.md) can attribute waste and propose changes.
+
+| Item | Value |
+| --- | --- |
+| Mechanism | Pull, per configured repository: `GET /repos/{owner}/{repo}/actions/runs?created=>={cursor}&per_page=100` (all pages), then `GET /repos/{owner}/{repo}/actions/runs/{id}/jobs?filter=all&per_page=100` for every run whose conclusion is not `skipped`. `GET .../runs/{id}/timing` is **not** used: it returns `billable.total_ms = 0` for every run (verified 2026-09-06). |
+| Token | Fine-grained PAT with Actions: read on the repositories (or the classic `repo` scope for private ones); referenced by env var name |
+| Measures | `action.job.seconds` (one event per job; `sku` = runner label, e.g. `ubuntu-latest`, `windows-latest`, `macos-14`, or `self-hosted:<label>`; `quantity` = `completed_at − started_at` in seconds, 0 for skipped jobs); `action.run.count` (one per run); `action.job.cancelled.seconds` (duplicate of the seconds of jobs whose conclusion is `cancelled`, so cancelled work is a plain sum) |
+| Attribution | repository → `project`; run id → `session` (`external_session_id = run_id`, `started_at`/`ended_at` from the run, `attrs`: `workflow_path`, `workflow_name`, `event`, `branch`, `head_sha`, `conclusion`, `run_attempt`, `triggering_actor`, `pr_number`, `pr_draft` when the run carries a pull request); job event `attrs`: `job_name`, `conclusion`, `runner_group`, `self_hosted` (bool), `labels`, `steps` (name, seconds) when `collect_steps` is on |
+| Pricing | rate cards per runner SKU (`action.job.seconds` at $0.008/60 per second for `ubuntu-*`, ×2 for `windows-*`, ×10 for `macos-*`, 0 for `self-hosted:*`) give list cost; billing is per second, so no rounding. Reported cost stays with `github_billing`; reconciliation compares the two per repository per day |
+| Idempotency | `source_ref` = `run_id` for run events, `job_id` for job events; re-collecting a run replaces its jobs inside one transaction |
+| Cursor | `created_at` of the newest completed run minus 2 days (runs can complete after they are listed); runs still `in_progress` or `queued` are skipped and picked up next time |
+| Repositories | listed in config (`repos = ["newellnarco/MAX3", ...]`); `discover()` lists what the token can see and warns about repositories on the billing page that are not configured (rule `gha.unattributed_spend`) |
+| Gaps | Dynamic workflows (`dynamic/agents/copilot-pull-request-reviewer`, Dependabot, Pages) are billed and are collected like any other run. Steps are only collected when `collect_steps = true` (cost: one more field per job, no extra request). Queue time is not billed and is not stored. |
+
 ## 5. GitHub Copilot
 
 GitHub moved Copilot to usage-based billing on 2026-06-01: plans include monthly **AI credits**,

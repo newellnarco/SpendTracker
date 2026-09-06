@@ -9,6 +9,7 @@
 | Store locally in SQLite | Per-node database, WAL, spool-based ingest (ADR-0001). |
 | Local web UI for trends, by app, by type, by currency | FastAPI + htmx pages over SQL views (WEB-UI.md). |
 | Roll up many local users to a repository | Append-only JSONL export, git-based rollup, CI-built aggregate (ADR-0004, AGGREGATION.md). |
+| Turn usage into changes: name the waste, propose the fix, estimate the saving, verify it | Findings engine with rule packs per layer (ADR-0011, FINDINGS.md). |
 | Add layers incrementally | Adapter contract and conformance suite (ADR-0005, ADAPTER-SPEC.md). |
 | Iterate without losing context | Context ledger, ADRs, phase playbook (PHASE-PLAYBOOK.md). |
 
@@ -59,9 +60,10 @@ flowchart TB
         spool[/Spool dir<br/>~/.spendtracker/spool/*.json/]
         otlp[OTLP receiver<br/>127.0.0.1:4318]
         cli[CLI  st<br/>ingest · collect · price · report · export · serve]
-        adapters[Adapters<br/>claude_code · anthropic_admin · github_billing · copilot · coderabbit · mcp · manual · csv]
+        adapters[Adapters<br/>claude_code · anthropic_admin · github_billing · github_actions_runs · copilot · coderabbit · mcp · manual · csv]
         ingest[Ingest service<br/>validate · dedupe · write]
         pricer[Pricer<br/>rate cards · subscriptions · allocation · budgets]
+        findings[Findings engine<br/>rules · findings · proposals]
         db[(SQLite<br/>spend.db)]
         web[Web UI<br/>FastAPI + htmx + Chart.js]
         sched[Scheduler<br/>cron / launchd / systemd timer]
@@ -75,6 +77,7 @@ flowchart TB
     cli --> adapters --> ingest
     ingest --> db
     db --> pricer --> db
+    db --> findings --> db
     db --> web
     cli -- export --> files[/data/<node>/<YYYY-MM>.jsonl/]
 ```
@@ -97,10 +100,13 @@ flowchart LR
     price[Pricer<br/>list · reported · allocated · overage]
     cl[(cost_line)]
     views[SQL views<br/>v_daily_cost · v_budget_status · v_session_summary]
+    rules[Rules<br/>core pack · adapter rule packs]
+    fnd[(finding · proposal)]
     api[JSON API<br/>/api/v1/series ...]
-    ui[Pages<br/>Overview · Trends · Apps · Types · Sessions · Budgets]
+    ui[Pages<br/>Overview · Trends · Apps · Types · Sessions · Budgets · Findings]
 
     raw --> norm --> ue --> val --> dedupe --> write --> price --> cl --> views --> api --> ui
+    cl --> rules --> fnd --> views
 ```
 
 ## 5. Domain model (D-CLASS)
@@ -287,6 +293,9 @@ stateDiagram-v2
 3. `web` depends on SQL views and `core.api`; it never calls adapters.
 4. `cli` orchestrates; it contains no business logic.
 5. `rollup` reuses `core` to import batches into a second database with the same schema.
+6. `core.findings` runs rules; generic rules live in the core, layer-specific rules ship inside the
+   adapter directory and are loaded with it, so rule code may know an app but the engine may not
+   (ADR-0011, FINDINGS.md).
 
 ## 8. Runtime layout on disk
 

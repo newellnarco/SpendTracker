@@ -18,7 +18,8 @@ gantt
     section Money
     S2 Pricing and subscriptions  :s2, after s1, 2w
     S3 GitHub and Copilot pulls   :s3, after s2, 2w
-    S4 Budgets and trends         :s4, after s3, 1w
+    S3b Actions runs and findings :s3b, after s3, 2w
+    S4 Budgets and trends         :s4, after s3b, 1w
     section Breadth
     S5 MCP and CodeRabbit         :s5, after s4, 1w
     S6 Export and team rollup     :s6, after s5, 2w
@@ -86,7 +87,34 @@ Exit criteria · Demo script**.
 - **Tests**: recorded HTTP fixtures; trailing-3-day refetch dedupe; cursor resume; rate-limit backoff.
 - **CI/CT**: CT nightly runs adapters against fixtures **and**, on a self-hosted or personal runner with a token, against the live API in read-only mode, asserting schema stability of responses (alerts on vendor changes).
 - **Context updates**: research note `S3-github-billing-endpoints.md` with the endpoint list and scopes verified; Q-2 answered.
+- **Note**: run-level attribution and findings are S3b; S3 stops at billing lines.
 - **Exit criteria**: scheduled run every hour for 3 days with zero failed `collector_run`; GitHub page totals match the GitHub billing page for the month.
+
+## S3b — GitHub Actions runs and findings
+
+- **Goal**: answer "where did the minutes go and what do I change" from the tracker instead of by
+  hand. The 2026-09-06 analysis (`research/S3-github-actions-run-usage.md`) is the acceptance case.
+- **Capabilities**: C-31, C-32, C-33.
+- **Schema**: apply `002_findings.sql`; register `action.job.seconds`, `action.run.count`,
+  `action.job.cancelled.seconds`.
+- **Collectors**: `github_actions_runs` for the configured repositories, run sessions with workflow,
+  event, branch, PR and conclusion attributes, jobs with runner labels.
+- **Pricing**: rate cards per runner SKU; self-hosted at zero; reconciliation of run-level list cost
+  against `github_billing` reported cost per repository per day.
+- **Rules**: the GitHub Actions pack (FINDINGS.md §5.1) and the core pack (§5.2).
+- **UI**: Findings page with ranked proposals, evidence drawer and lifecycle buttons; Overview tile.
+- **Tests**: adapter fixtures recorded from the two repositories (redacted); golden replay of
+  `examples/findings/github-actions-2026-09.jsonl`; signature stability; human state preserved across
+  `st findings run`; verification math; page snapshot.
+- **CI/CT**: `st findings test github_actions_runs` in the `integration` tier; CT invariant that
+  every open finding's evidence ids exist.
+- **Context updates**: research note already written; ADR-0011; CONTEXT decisions log and Q-2
+  extended with the repository list question.
+- **Exit criteria**: `st collect github_actions_runs` over the four repositories for 2026-09-01..06
+  followed by `st findings run` lists the seven proposals of the research note with savings within
+  10 % of the note; accepting one and marking it applied, then re-running, keeps its status and
+  updates its evidence; the Findings page renders the list under 300 ms on the fixture store.
+- **Demo**: collect, run, `st findings list --min-saving 60`, open the page, accept proposal 1.
 
 ## S4 — Budgets and trends
 
